@@ -49,6 +49,9 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
 - **Ružmarin:** a traditional Croatian folk song in A major (2/4), played whole by the band with its
   melody: two eight-bar strains, twice, resolving to A at the end. From the upper voice of John
   Chambers' two-voice ABC transcription (trillian.mit.edu, "O: Croatia").
+- **Kolo kalendara** and **Ćiro kolo:** traditional Croatian kolos, played whole with their melodies,
+  in A major (Ćiro kolo moved up from G), with the repeats and first/second endings of John Chambers'
+  ABC transcriptions written out.
 - **Ajde lepa Maro (kolo):** a traditional Croatian kolo in D major, both eight-bar strains, twice.
   The melody is the upper voice of John Chambers' two-voice ABC transcription (abcnotation.com,
   "O: Croatia"); the arranged second prim lands on the transcription's lower voice.

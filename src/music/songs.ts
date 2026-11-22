@@ -310,8 +310,80 @@ export const RUZMARIN: Song = {
   ending: { chord: 'A', note: 73, beats: 1.5 },
 };
 
+const KALENDARA_A = { chord: 'A', melody: [[76, 2], [74, 1], [73, 1]] } as const;
+const KALENDARA_B: readonly SongBar[] = [
+  { chord: 'A', melody: [[69, 3, true], [71, 0.5], [73, 0.5]] },
+  { chord: 'E7', melody: [[74, 1], [73, 1], [74, 1], [76, 1]] },
+  { chord: 'A', melody: [[73, 3, true], [74, 0.5], [73, 0.5]] },
+  { chord: 'E7', melody: [[71, 4, true]] },
+];
+
+/**
+ * "Kolo kalendara", a traditional Croatian kolo, in A major (2/4), from John Chambers'
+ * ABC transcription (trillian.mit.edu, "O: Croatia"). The repeats and first/second
+ * endings are written out: strain A twice, strain B twice; the whole kolo twice.
+ */
+export const KOLO_KALENDARA: Song = {
+  id: 'kolo-kalendara',
+  title: { hr: 'Kolo kalendara', en: 'Kolo kalendara' },
+  bpm: 126,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [
+    KALENDARA_A,
+    KALENDARA_A,
+    KALENDARA_A,
+    { chord: 'E7', melody: [[71, 3, true], [73, 1]] },
+    KALENDARA_A,
+    KALENDARA_A,
+    KALENDARA_A,
+    { chord: 'E7', melody: [[71, 4, true]] },
+    ...KALENDARA_B,
+    ...KALENDARA_B,
+  ],
+  ending: { chord: 'A', note: 73, beats: 1.5 },
+};
+
+const CIRO_A: readonly SongBar[] = [
+  { chord: 'A', melody: [[69, 1], [73, 1], [76, 1], [76, 1]] },
+  { chord: 'A', melody: [[76, 1], [78, 1], [76, 1], [73, 1]] },
+  { chord: ['A', 'E7'], melody: [[76, 1], [76, 1], [74, 1], [74, 1]] },
+  { chord: 'A', melody: [[73, 1], [73, 1], [71, 1], [69, 1]] },
+];
+const CIRO_B: readonly SongBar[] = [
+  { chord: ['A', 'E7'], melody: [[73, 2], [74, 1], [71, 1]] },
+  { chord: ['A', 'E7'], melody: [[73, 2], [74, 1], [71, 1]] },
+  { chord: ['A', 'E7'], melody: [[73, 1], [73, 1], [71, 1], [71, 1]] },
+];
+
+/**
+ * "Ćiro kolo", a traditional Croatian kolo, from John Chambers' ABC transcription (2003,
+ * trillian.mit.edu, "O: Croatia"), moved from G up to A major for the E tuning. Repeats
+ * and endings written out: strain A twice, strain B twice; the whole kolo twice.
+ */
+export const CIRO_KOLO: Song = {
+  id: 'ciro-kolo',
+  title: { hr: 'Ćiro kolo', en: 'Ćiro kolo' },
+  bpm: 132,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [
+    ...CIRO_A,
+    ...CIRO_A,
+    ...CIRO_B,
+    { chord: 'A', melody: [[69, 3, true], [71, 1]] },
+    ...CIRO_B,
+    { chord: 'A', melody: [[69, 3, true], [0, 1]] },
+  ],
+  ending: { chord: 'A', note: 73, beats: 1.5 },
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, RUZMARIN, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
+export const SONGS: readonly Tune[] = [KOLO_E, RUZMARIN, KOLO_KALENDARA, CIRO_KOLO, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
