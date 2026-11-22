@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="hr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a110b" />
+    <meta name="description" content="Sviraj tamburaški sastav u pregledniku: bisernica, brač, bugarija i berde." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <title>Tambura simulator</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <h1 class="brand">Tambura <span>simulator</span></h1>
+        <div class="top-actions">
+          <button type="button" class="chip" id="lang-btn" aria-label="Language">EN</button>
+          <button type="button" class="chip" id="help-btn" data-i18n="help">Upute</button>
+        </div>
+        <nav class="instruments" id="instruments" aria-label="Instrument"></nav>
+      </header>
+
+      <p class="info" id="info"></p>
+
+      <main class="stage">
+        <canvas id="board" role="application"></canvas>
+        <p class="hint" id="hint" data-i18n="tapToStart"></p>
+      </main>
+
+      <section class="chords" aria-labelledby="chords-label">
+        <h2 class="sr-only" id="chords-label" data-i18n="chords"></h2>
+        <div class="chord-row" id="chords"></div>
+      </section>
+
+      <footer class="controls">
+        <label class="toggle"><input type="checkbox" id="tremolo" /> <span data-i18n="tremolo"></span></label>
+        <label class="toggle"><input type="checkbox" id="notes" /> <span data-i18n="noteNames"></span></label>
+        <label class="toggle keys-toggle"><input type="checkbox" id="keys" /> <span data-i18n="keyLabels"></span></label>
+        <label class="volume"><span data-i18n="volume"></span> <input type="range" id="volume" min="0" max="1" step="0.01" /></label>
+      </footer>
+
+      <dialog id="help">
+        <form method="dialog">
+          <h2 data-i18n="help"></h2>
+          <p data-i18n="helpIntro"></p>
+          <h3 data-i18n="helpMouseTitle"></h3>
+          <ul id="help-mouse"></ul>
+          <h3 data-i18n="helpKeysTitle"></h3>
+          <ul id="help-keys"></ul>
+          <button class="chip primary" data-i18n="close"></button>
+        </form>
+      </dialog>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
