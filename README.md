@@ -42,13 +42,15 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#kontra` (
 **Band (▶ Play / Sviraj)**
 
 Pick a song from the list beside the play button (on phones in portrait it sits right next to ▶; on
-short rails, under ⚙) and press play. Ćiro kolo is selected by default.
+short rails, under ⚙) and press play. Until you pick one yourself, the first song in the list is
+selected (Ja sem Varaždinec).
 
 - **Kolo u E-duru:** the whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
   prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
   bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
 - **Ja sem Varaždinec:** the traditional Kajkavian popevka in D major, from the sung line of Mladen
-  Žvorc's tamburica arrangement (MuseScore), an octave up; refrain, verse, refrain, two verses.
+  Žvorc's tamburica arrangement (MuseScore), an octave up; refrain, verse, refrain, all four verses.
+  It is the default song.
 - **Seljančica (kolo):** the traditional kolo of Slavonia, Srijem and Serbia, from Deborah Jones'
   two-voice ABC transcription (VIFD Book 1, Seymour Shlien's Balkan collection), moved from G to A major;
   first strain, bridge and second strain, each written out with its repeats.

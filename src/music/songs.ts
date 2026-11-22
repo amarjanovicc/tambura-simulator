@@ -393,8 +393,8 @@ const VARAZDINEC_B: readonly SongBar[] = [
 /**
  * "Ja sem Varaždinec", a traditional Kajkavian popevka (narodna), in D major (2/4). The
  * melody is the sung line of Mladen Žvorc's tamburica arrangement (MuseScore), an octave
- * up where the prim plays it; his instrumental intro and ornaments are not used. The
- * refrain twice, the verse ("imel jesem…"), the refrain twice more; two verses.
+ * up where the prim plays it; his instrumental intro and ornaments are not used. Each of
+ * the four verses: the refrain twice, the verse line ("imel jesem…"), the refrain twice.
  */
 export const JA_SEM_VARAZDINEC: Song = {
   id: 'ja-sem-varazdinec',
@@ -403,15 +403,15 @@ export const JA_SEM_VARAZDINEC: Song = {
   tonic: 2,
   introBars: 2,
   introChord: 'D',
-  repeats: 2,
+  repeats: 4,
   bars: [...VARAZDINEC_A, ...VARAZDINEC_A, ...VARAZDINEC_B, ...VARAZDINEC_A, ...VARAZDINEC_A],
   ending: { chord: 'D', note: 74, beats: 1.5 },
 };
 
 /** The first song is the one selected by default. */
 export const SONGS: readonly Song[] = [
-  CIRO_KOLO,
   JA_SEM_VARAZDINEC,
+  CIRO_KOLO,
   SELJANCICA,
   IGRALE_SE_DELIJE,
   KOLO_KALENDARA,

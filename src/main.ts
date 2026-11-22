@@ -20,6 +20,8 @@ interface Prefs {
   neckOnly: boolean;
   minusOne: boolean;
   song: string;
+  /** Whether the song was picked by hand; until then the first song in the list plays. */
+  songChosen: boolean;
   volume: number;
 }
 
@@ -36,6 +38,7 @@ function loadPrefs(): Prefs {
     neckOnly: false,
     minusOne: false,
     song: SONGS[0]!.id,
+    songChosen: false,
     volume: 0.7,
   };
   try {
@@ -43,6 +46,8 @@ function loadPrefs(): Prefs {
     const merged = { ...defaults, ...saved };
     // Saved before the switch to the Srijem names (e.g. "bisernica").
     merged.instrument = resolveInstrumentId(merged.instrument) ?? defaults.instrument;
+    // A song saved only because it was the default then follows the current default.
+    if (!merged.songChosen) merged.song = defaults.song;
     return merged;
   } catch {
     return defaults;
@@ -149,6 +154,7 @@ function renderSongs(): void {
 for (const select of songSelects) {
   select.addEventListener('change', () => {
     prefs.song = select.value;
+    prefs.songChosen = true;
     savePrefs(prefs);
     if (band.playing) band.stop();
     renderSongs();
