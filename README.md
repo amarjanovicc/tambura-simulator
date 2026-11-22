@@ -46,6 +46,11 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
 - **Kolo u E-duru:** the whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
   prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
   bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
+- **Pjesma ravnici:** an original slow tune in D major (4/4, 76 bpm), written over the chord
+  progression of the refrain of "Ne dirajte mi ravnicu" (G, A7, D, Fis, Hm, B…). The progression is
+  free to use; the melody is new. The whole band plays it: prim melody with tremolo on long notes,
+  a second prim a third below (a chord tone where the chord has one, so Fis and B-flat stay in tune),
+  bas-prim an octave lower, kontra on 2 and 4, berde root and fifth.
 - **Osam tamburaša (pratnja):** the accompaniment only, in 4/4 at 84 bpm: berde root and fifth,
   kontra on beats 2 and 4, bas-prim holding the chord's third in tremolo. You play the melody; the
   current and next chord show in the corner and the neck shows the chord's shape. The song (Ratko Šoć,

@@ -1,7 +1,7 @@
 import { type Voicing, chordById, findVoicing } from './chords';
 import { type InstrumentDef, type InstrumentId, getInstrument } from './instruments';
 import { pitchClass } from './notes';
-import { type BackingTrack, type Song, type Tune, isBacking } from './songs';
+import { type BackingTrack, type Song, type SongBar, type Tune, isBacking } from './songs';
 
 export interface BandEvent {
   inst: InstrumentId;
@@ -90,6 +90,19 @@ export function placeNote(inst: InstrumentDef, midi: number): { course: number; 
   return best;
 }
 
+/**
+ * The second voice under a melody note: the chord tone a third below when there is one
+ * (so chromatic chords like Fis or B-flat stay in tune), otherwise the diatonic third.
+ */
+export function harmonyBelow(midi: number, tonic: number, chordId?: string): number {
+  const chord = chordId ? chordById(chordId) : undefined;
+  if (chord) {
+    const tones = chord.intervals.map((i) => pitchClass(chord.root + i));
+    for (const d of [3, 4]) if (tones.includes(pitchClass(midi - d))) return midi - d;
+  }
+  return thirdBelow(midi, tonic);
+}
+
 /** The note a diatonic third below, in a major key (chromatic notes drop a minor third). */
 export function thirdBelow(midi: number, tonic: number): number {
   const scale = MAJOR.map((i) => pitchClass(tonic + i));
@@ -139,37 +152,66 @@ export function arrange(song: Song): Arrangement {
     }
   };
 
-  const voices = (midi: number, time: number, length: number, tremolo: boolean): void => {
+  const voices = (midi: number, time: number, length: number, tremolo: boolean, chordId?: string): void => {
     melodyNote(prim, midi, time, length, tremolo, 1);
-    melodyNote(prim, thirdBelow(midi, song.tonic), time, length, tremolo, 0.78, 'second');
+    melodyNote(prim, harmonyBelow(midi, song.tonic, chordId), time, length, tremolo, 0.78, 'second');
     melodyNote(basprim, midi - 12, time, length, tremolo, 0.8);
   };
 
-  const rhythm = (chordId: string, time: number, last: boolean): void => {
-    const { shape, root, fifth } = chordParts(chordId);
+  const meter = song.beatsPerBar ?? 2;
+  const barLength = meter * beat;
+  const chordList = (c: SongBar['chord']): readonly string[] => (typeof c === 'string' ? [c] : c);
+
+  /**
+   * One bar of accompaniment. A kolo (2/4): berde on the beats (root, then fifth), kontra
+   * on the off-beat eighths. A slow song (4/4): berde root on 1 and fifth on 3, kontra on
+   * 2 and 4. With two chords in a bar, each takes half.
+   */
+  const rhythm = (bar: SongBar['chord'], time: number): void => {
+    const list = chordList(bar);
+    const share = meter / list.length;
+    list.forEach((chordId, k) => {
+      const at = time + k * share * beat;
+      const { shape, root, fifth } = chordParts(chordId);
+      if (chords.at(-1)?.id !== chordId) chords.push({ time: at, id: chordId });
+      add(berde, root, at, 0.85, beat * 0.8);
+      const fifthAt = meter === 4 ? 2 : 1;
+      if (share > fifthAt) add(berde, fifth, at + fifthAt * beat, 0.8, beat * 0.8);
+      for (let b = 0; b < share; b++) {
+        if (meter === 4) {
+          if ((k * share + b) % 2 === 1) strum(events, shape, at + b * beat, 0.68, beat * 0.4);
+        } else {
+          strum(events, shape, at + b * beat + eighth, 0.7, 0.15);
+        }
+      }
+    });
+  };
+  const finalChord = (chordId: string, time: number): void => {
+    const { shape, root } = chordParts(chordId);
     if (chords.at(-1)?.id !== chordId) chords.push({ time, id: chordId });
-    add(berde, root, time, 0.85, last ? undefined : beat * 0.8);
-    if (!last) add(berde, fifth, time + beat, 0.8, beat * 0.8);
-    const strums = last ? [time] : [time + eighth, time + beat + eighth];
-    for (const at of strums) strum(events, shape, at, last ? 0.8 : 0.7, last ? undefined : 0.15);
+    add(berde, root, time, 0.85);
+    strum(events, shape, time, 0.8);
   };
 
-  const barLength = 2 * beat;
   let t = 0;
-  for (let i = 0; i < song.introBars; i++, t += barLength) rhythm(song.bars[0]?.chord ?? song.ending.chord, t, false);
+  const first = song.bars[0]?.chord ?? song.ending.chord;
+  for (let i = 0; i < song.introBars; i++, t += barLength) rhythm(chordList(first)[0]!, t);
   for (let r = 0; r < song.repeats; r++) {
     for (const bar of song.bars) {
-      rhythm(bar.chord, t, false);
+      rhythm(bar.chord, t);
+      const list = chordList(bar.chord);
       let u = t;
       for (const [midi, eighths, tremolo] of bar.melody) {
-        voices(midi, u, eighths * eighth, tremolo ?? false);
+        // The chord under this note: the second one in the bar's second half.
+        const chordId = list[list.length > 1 && u - t >= barLength / 2 - 1e-6 ? 1 : 0];
+        voices(midi, u, eighths * eighth, tremolo ?? false, chordId);
         u += eighths * eighth;
       }
       t += barLength;
     }
   }
-  rhythm(song.ending.chord, t, true);
-  voices(song.ending.note, t, song.ending.beats * beat, true);
+  finalChord(song.ending.chord, t);
+  voices(song.ending.note, t, song.ending.beats * beat, true, song.ending.chord);
 
   events.sort((a, b) => a.time - b.time);
   return { events, duration: t + 2.5, chords };

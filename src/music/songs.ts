@@ -4,18 +4,21 @@ import type { Lang } from '../i18n';
 export type MelodyNote = readonly [midi: number, eighths: number, tremolo?: boolean];
 
 export interface SongBar {
-  chord: string;
+  /** One chord, or two that share the bar half and half. */
+  chord: string | readonly string[];
   melody: readonly MelodyNote[];
 }
 
 /**
- * A tune in 2/4 for the whole band. The melody is written for the prim; the other
- * parts (bas-prim second voice, kontra off-beats, berde bass) are derived in `arrange.ts`.
+ * A tune for the whole band. The melody is written for the prim; the other parts
+ * (second prim, bas-prim, kontra, berde) are derived in `arrange.ts`.
  */
 export interface Song {
   id: string;
   title: Record<Lang, string>;
   bpm: number;
+  /** Beats per bar: 2 for a kolo (the default), 4 for a slow song. */
+  beatsPerBar?: 2 | 4;
   /** Pitch class of the key's tonic; the key is major. */
   tonic: number;
   /** Bars of rhythm only before the melody starts. */
@@ -133,8 +136,45 @@ export const RAVNICA_REFREN: BackingTrack = {
   ending: 'D',
 };
 
+/**
+ * An original slow tune in D major in a Slavonian style, written over the chord progression
+ * of the refrain of "Ne dirajte mi ravnicu" (G A7 D Fis Hm B…). Chord progressions are
+ * free to use; the melody is new and does not follow Škoro's. Two phrases of eight bars:
+ * the first settles on D, the second climbs to b² and comes home.
+ */
+export const PJESMA_RAVNICI: Song = {
+  id: 'pjesma-ravnici',
+  title: { hr: 'Pjesma ravnici', en: 'Song for the Plain' },
+  bpm: 76,
+  beatsPerBar: 4,
+  tonic: 2,
+  introBars: 2,
+  repeats: 2,
+  bars: [
+    // Phrase 1
+    { chord: 'G', melody: [[71, 2], [74, 2], [79, 3], [78, 1]] },
+    { chord: 'A7', melody: [[76, 4, true], [73, 2], [76, 2]] },
+    { chord: ['D', 'Fis'], melody: [[78, 2], [74, 2], [73, 2], [70, 2]] },
+    { chord: ['Hm', 'Bes'], melody: [[71, 2], [74, 2], [74, 2], [77, 2]] },
+    { chord: 'D', melody: [[78, 6, true], [76, 1], [74, 1]] },
+    { chord: 'Em', melody: [[71, 2], [74, 2], [79, 2], [76, 2]] },
+    { chord: ['G', 'A7'], melody: [[74, 2], [71, 2], [73, 2], [76, 2]] },
+    { chord: 'D', melody: [[74, 8, true]] },
+    // Phrase 2
+    { chord: 'G', melody: [[79, 2], [83, 2], [81, 2], [79, 2]] },
+    { chord: 'A7', melody: [[81, 4, true], [79, 2], [76, 2]] },
+    { chord: ['D', 'Fis'], melody: [[78, 2], [81, 2], [82, 2], [78, 2]] },
+    { chord: ['Hm', 'Bes'], melody: [[78, 2], [74, 2], [77, 2], [74, 2]] },
+    { chord: 'D', melody: [[74, 2], [78, 2], [81, 4, true]] },
+    { chord: ['Em', 'A7'], melody: [[79, 2], [76, 2], [73, 2], [76, 2]] },
+    { chord: ['G', 'A7'], melody: [[79, 2], [78, 2], [76, 2], [73, 2]] },
+    { chord: 'D', melody: [[74, 8, true]] },
+  ],
+  ending: { chord: 'D', note: 74, beats: 3 },
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];
+export const SONGS: readonly Tune[] = [KOLO_E, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];

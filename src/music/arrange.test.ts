@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { arrange, arrangeBacking, placeNote, thirdBelow } from './arrange';
+import { arrange, arrangeBacking, harmonyBelow, placeNote, thirdBelow } from './arrange';
 import { chordById, findVoicing } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { pitchClass } from './notes';
-import { KOLO_E, OSAM_TAMBURASA, SONGS, isBacking } from './songs';
+import { KOLO_E, OSAM_TAMBURASA, PJESMA_RAVNICI, SONGS, type Song, isBacking } from './songs';
 
 describe('arrange', () => {
   const { events, duration } = arrange(KOLO_E);
@@ -109,6 +109,43 @@ describe('song chords', () => {
         const chord = chordById(id);
         expect(chord, id).toBeDefined();
         expect(findVoicing(inst, chord!), `${inst.id} ${id}`).not.toBeNull();
+      }
+    }
+  });
+});
+
+describe('slow songs with a melody', () => {
+  it('every bar of every tune adds up to its meter', () => {
+    for (const song of SONGS.filter((x): x is Song => !isBacking(x))) {
+      const eighths = 2 * (song.beatsPerBar ?? 2);
+      for (const [i, bar] of song.bars.entries()) {
+        const sum = bar.melody.reduce((a, [, e]) => a + e, 0);
+        expect(sum, `${song.id} bar ${i + 1}`).toBe(eighths);
+      }
+    }
+  });
+
+  it('plays "Pjesma ravnici" in 4/4: kontra on 2 and 4, second voice a third below in the chord', () => {
+    const { events, duration } = arrange(PJESMA_RAVNICI);
+    const beat = 60 / PJESMA_RAVNICI.bpm;
+    const end = duration - 2.5;
+    const beatInBar = (t: number): number => Math.round(Math.round((t / beat) * 100) / 100) % 4;
+    for (const e of events.filter((x) => x.inst === 'kontra' && x.time < end - 0.01)) {
+      expect([1, 3]).toContain(beatInBar(e.time));
+    }
+    // The second voice: always a third below, and a chord tone wherever the chord has one there.
+    for (const bar of PJESMA_RAVNICI.bars) {
+      const list = typeof bar.chord === 'string' ? [bar.chord] : bar.chord;
+      let pos = 0;
+      for (const [midi, eighths] of bar.melody) {
+        const chordId = list[list.length > 1 && pos >= 4 ? 1 : 0]!;
+        const below = harmonyBelow(midi, PJESMA_RAVNICI.tonic, chordId);
+        expect([3, 4]).toContain(midi - below);
+        const chord = chordById(chordId)!;
+        const tones = chord.intervals.map((i) => pitchClass(chord.root + i));
+        const third = [midi - 3, midi - 4].find((m) => tones.includes(pitchClass(m)));
+        if (third !== undefined) expect(below).toBe(third);
+        pos += eighths;
       }
     }
   });
