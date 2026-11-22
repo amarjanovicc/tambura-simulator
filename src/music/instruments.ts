@@ -113,8 +113,8 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     name: { hr: 'Bas-prim', en: 'Bas-prim' },
     alias: { hr: 'brač', en: 'brač' },
     role: { hr: 'melodija i drugi glas', en: 'melody and second voice' },
-    // cis – fis – h – e1 (e1 doubled): an octave below the prim
-    courses: [c(49), c(54), c(59), c(64, true)],
+    // fis – h – e1 – a1 (a1 doubled): 5 strings in fourths
+    courses: [c(54), c(59), c(64), c(69, true)],
     visibleFrets: 12,
     chordStyle: 'full',
     soundHole: 'round',

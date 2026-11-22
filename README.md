@@ -66,7 +66,7 @@ All tunings live in [`src/music/instruments.ts`](src/music/instruments.ts):
 | Instrument             | Strings, high → low       | Role               |
 | ---------------------- | ------------------------- | ------------------ |
 | Prim (bisernica)       | e² e² h¹ fis¹ cis¹ (5)    | lead melody        |
-| Bas-prim (brač)        | e¹ e¹ h fis cis (5)       | melody, 2nd voice  |
+| Bas-prim (brač)        | a¹ a¹ e¹ h fis (5)        | melody, 2nd voice  |
 | Kontra (bugarija)      | e¹ e¹ h gis e (5), E major | rhythm, chords     |
 | Berde                  | G D A₁ E₁ (4)             | bass               |
 
