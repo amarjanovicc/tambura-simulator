@@ -1,6 +1,6 @@
-import { type BandEvent, arrangeTune } from '../music/arrange';
+import { type BandEvent, arrange } from '../music/arrange';
 import { type InstrumentId, getInstrument } from '../music/instruments';
-import type { Tune } from '../music/songs';
+import type { Song } from '../music/songs';
 import type { AudioEngine } from './engine';
 
 const LOOKAHEAD_S = 0.3;
@@ -41,10 +41,10 @@ export class BandPlayer {
     this.muted = muted;
   }
 
-  play(song: Tune): void {
+  play(song: Song): void {
     this.stop(false);
     this.engine.unlock();
-    const { events, duration, chords } = arrangeTune(song);
+    const { events, duration, chords } = arrange(song);
     this.chords = chords;
     this.nextChord = 0;
     // Render every note up front (~1 ms each) so nothing is computed mid-song.

@@ -14,7 +14,6 @@ export interface ChordDef {
 const MAJOR = [0, 4, 7];
 const MINOR = [0, 3, 7];
 const DOM7 = [0, 4, 7, 10];
-const DIM = [0, 3, 6];
 
 const chord = (id: string, root: number, intervals: number[], hr: string, en: string): ChordDef => ({
   id,
@@ -43,20 +42,14 @@ export const CHORDS: readonly ChordDef[] = [
 ];
 
 /**
- * Chords that songs use outside the E-key palette (minor keys, passing chords). They have
- * no buttons, but the band plays them and your instrument shows their shapes.
+ * Chords that songs use outside the E-key palette. They have no buttons, but the band
+ * plays them.
  */
 export const SONG_CHORDS: readonly ChordDef[] = [
   chord('Em', 4, MINOR, 'Em', 'Em'),
-  chord('Am', 9, MINOR, 'Am', 'Am'),
-  chord('C', 0, MAJOR, 'C', 'C'),
-  chord('Cisdim', 1, DIM, 'Cis°', 'C#°'),
   chord('Fis', 6, MAJOR, 'Fis', 'F#'),
   // B-flat: "B" in Croatian, where H is B natural.
   chord('Bes', 10, MAJOR, 'B', 'B♭'),
-  chord('Dm', 2, MINOR, 'Dm', 'Dm'),
-  chord('Gm', 7, MINOR, 'Gm', 'Gm'),
-  chord('F', 5, MAJOR, 'F', 'F'),
 ];
 
 export function chordById(id: string): ChordDef | undefined {

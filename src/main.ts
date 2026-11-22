@@ -6,7 +6,7 @@ import { Controller } from './input/controller';
 import { CHORDS } from './music/chords';
 import { INSTRUMENTS, type InstrumentId, getInstrument, resolveInstrumentId } from './music/instruments';
 import { helmholtz } from './music/notes';
-import { SONGS, type Tune, isBacking } from './music/songs';
+import { SONGS, type Song } from './music/songs';
 import { chordById } from './music/chords';
 import { Player } from './player';
 import { Renderer, type ViewOptions } from './view/renderer';
@@ -92,10 +92,7 @@ new Controller(canvas, renderer, player, engine, () => {
 
 const bandBtn = $<HTMLButtonElement>('band-btn');
 const nowChord = $('now-chord');
-const selectedSong = (): Tune => SONGS.find((x) => x.id === prefs.song) ?? SONGS[0]!;
-/** The chord the player had before a backing track took over the neck. */
-let chordBefore: string | null = null;
-let playing: Tune | null = null;
+const selectedSong = (): Song => SONGS.find((x) => x.id === prefs.song) ?? SONGS[0]!;
 
 const band = new BandPlayer(
   engine,
@@ -105,8 +102,6 @@ const band = new BandPlayer(
   () => {
     player.clearBand();
     nowChord.hidden = true;
-    if (playing && isBacking(playing)) player.selectChord(chordBefore, false);
-    playing = null;
     renderBandButton();
   },
   (id, next) => {
@@ -116,8 +111,6 @@ const band = new BandPlayer(
     nowChord.querySelector('.next')!.textContent = next ? `${s.nextChord} ${label(next)}` : '';
     nowChord.hidden = false;
     nowChord.animate([{ transform: 'scale(1.08)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
-    // With a backing track the neck shows the chord, so you can strum along or find the tune.
-    if (playing && isBacking(playing)) player.selectChord(id, false);
   },
 );
 const mutedSet = (): Set<InstrumentId> => new Set(prefs.minusOne ? [player.inst.id] : []);
@@ -133,9 +126,7 @@ bandBtn.addEventListener('click', () => {
   if (band.playing) band.stop();
   else {
     band.setMuted(mutedSet());
-    chordBefore = player.chordId;
-    playing = selectedSong();
-    band.play(playing);
+    band.play(selectedSong());
   }
   renderBandButton();
 });

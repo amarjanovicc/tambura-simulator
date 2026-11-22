@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { arrange, arrangeBacking, harmonyBelow, placeNote, thirdBelow } from './arrange';
+import { arrange, harmonyBelow, placeNote, thirdBelow } from './arrange';
 import { chordById, findVoicing } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { pitchClass } from './notes';
-import { KOLO_E, OSAM_TAMBURASA, PJESMA_RAVNICI, SONGS, type Song, isBacking } from './songs';
+import { KOLO_E, PJESMA_RAVNICI, SONGS, type Song } from './songs';
 
 describe('arrange', () => {
   const { events, duration } = arrange(KOLO_E);
@@ -61,49 +61,10 @@ describe('helpers', () => {
   });
 });
 
-describe('arrangeBacking', () => {
-  it('arranges every backing track without errors', () => {
-    for (const track of SONGS.filter(isBacking)) expect(arrangeBacking(track).events.length).toBeGreaterThan(0);
-  });
-
-  const { events, duration, chords } = arrangeBacking(OSAM_TAMBURASA);
-  const beat = 60 / OSAM_TAMBURASA.bpm;
-  const bar = OSAM_TAMBURASA.meter * beat;
-  const end = OSAM_TAMBURASA.bars.length * bar;
-
-  it('leaves the melody to you: no prim, and every note within reach', () => {
-    expect(events.some((e) => e.inst === 'prim')).toBe(false);
-    for (const e of events) {
-      const inst = getInstrument(e.inst);
-      expect(inst.courses[e.course]!.midi + e.fret).toBe(e.midi);
-      expect(e.fret).toBeLessThanOrEqual(inst.visibleFrets);
-    }
-    expect(duration).toBeGreaterThan(end);
-  });
-
-  it('strums the kontra on beats 2 and 4, and starts each chord with the berde root', () => {
-    const phase = (t: number): number => (Math.round((t / beat) * 100) / 100) % OSAM_TAMBURASA.meter;
-    for (const e of events.filter((x) => x.time < end - 0.01)) {
-      if (e.inst === 'kontra') expect([1, 3]).toContain(Math.round(phase(e.time)));
-      if (e.inst === 'berde') expect([0, 2]).toContain(phase(e.time));
-    }
-  });
-
-  it('reports every chord change, in order', () => {
-    expect(chords[0]).toEqual({ time: 0, id: 'Em' });
-    expect(chords.at(-1)?.id).toBe(OSAM_TAMBURASA.ending);
-    for (let i = 1; i < chords.length; i++) {
-      expect(chords[i]!.time).toBeGreaterThan(chords[i - 1]!.time);
-      expect(chords[i]!.id).not.toBe(chords[i - 1]!.id);
-    }
-  });
-});
-
 describe('song chords', () => {
   it('every instrument has a shape for every chord a song uses', () => {
-    const tracks = SONGS.filter(isBacking);
-    expect(tracks.length).toBeGreaterThan(1);
-    const used = new Set(tracks.flatMap((t) => [...t.bars.flat(), t.ending]));
+    const list = (c: Song['bars'][number]['chord']): readonly string[] => (typeof c === 'string' ? [c] : c);
+    const used = new Set(SONGS.flatMap((song) => [...song.bars.flatMap((bar) => list(bar.chord)), song.ending.chord]));
     for (const inst of INSTRUMENTS) {
       for (const id of used) {
         const chord = chordById(id);
@@ -116,7 +77,7 @@ describe('song chords', () => {
 
 describe('slow songs with a melody', () => {
   it('every bar of every tune adds up to its meter', () => {
-    for (const song of SONGS.filter((x): x is Song => !isBacking(x))) {
+    for (const song of SONGS) {
       const eighths = 2 * (song.beatsPerBar ?? 2);
       for (const [i, bar] of song.bars.entries()) {
         const sum = bar.melody.reduce((a, [, e]) => a + e, 0);
@@ -157,7 +118,7 @@ describe('slow songs with a melody', () => {
 
 describe('every tune', () => {
   it('arranges without errors, with every note in reach', () => {
-    for (const song of SONGS.filter((x): x is Song => !isBacking(x))) {
+    for (const song of SONGS) {
       const { events } = arrange(song);
       expect(events.some((e) => e.inst === 'prim'), song.id).toBe(true);
       for (const e of events) expect(e.fret).toBeLessThanOrEqual(getInstrument(e.inst).visibleFrets);
