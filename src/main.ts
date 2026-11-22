@@ -1,10 +1,12 @@
 import './style.css';
+import { BandPlayer } from './audio/band';
 import { AudioEngine } from './audio/engine';
 import { type Lang, t } from './i18n';
 import { Controller } from './input/controller';
 import { CHORDS } from './music/chords';
 import { INSTRUMENTS, type InstrumentId, getInstrument } from './music/instruments';
 import { noteName } from './music/notes';
+import { KOLO_D } from './music/songs';
 import { Player } from './player';
 import { Renderer } from './view/renderer';
 
@@ -14,6 +16,7 @@ interface Prefs {
   tremolo: boolean;
   showNotes: boolean;
   showKeys: boolean;
+  minusOne: boolean;
   volume: number;
 }
 
@@ -27,6 +30,7 @@ function loadPrefs(): Prefs {
     tremolo: false,
     showNotes: true,
     showKeys: false,
+    minusOne: false,
     volume: 0.8,
   };
   try {
@@ -73,6 +77,35 @@ new Controller(canvas, renderer, player, engine, () => {
   warmed = true;
   $('hint').hidden = true;
   player.prewarm();
+});
+
+const bandBtn = $<HTMLButtonElement>('band-btn');
+const band = new BandPlayer(
+  engine,
+  (e, audible) => {
+    if (e.inst === player.inst.id) player.showBandNote(e.course, e.fret, e.velocity, audible);
+  },
+  () => {
+    player.clearBand();
+    renderBandButton();
+  },
+);
+const mutedSet = (): Set<InstrumentId> => new Set(prefs.minusOne ? [player.inst.id] : []);
+band.setMuted(mutedSet());
+
+function renderBandButton(): void {
+  const s = t(prefs.lang);
+  bandBtn.textContent = band.playing ? s.stopSong : s.playSong;
+  bandBtn.setAttribute('aria-pressed', String(band.playing));
+}
+
+bandBtn.addEventListener('click', () => {
+  if (band.playing) band.stop();
+  else {
+    band.setMuted(mutedSet());
+    band.play(KOLO_D);
+  }
+  renderBandButton();
 });
 
 const instrumentsNav = $('instruments');
@@ -164,6 +197,8 @@ function applyLang(): void {
       }),
     );
   };
+  $('minus-label').title = s.minusOneHint;
+  renderBandButton();
   list('help-mouse', s.helpMouse);
   list('help-keys', s.helpKeys);
   renderInstruments();
@@ -177,6 +212,7 @@ function selectInstrument(id: InstrumentId): void {
   savePrefs(prefs);
   history.replaceState(null, '', `#${id}`);
   player.setInstrument(getInstrument(id));
+  band.setMuted(mutedSet());
   renderer.relayout();
   renderInstruments();
   renderChords();
@@ -190,19 +226,21 @@ player.onChange(() => {
   }
 });
 
-const bindToggle = (id: string, key: 'tremolo' | 'showNotes' | 'showKeys'): void => {
+const bindToggle = (id: string, key: 'tremolo' | 'showNotes' | 'showKeys' | 'minusOne'): void => {
   const input = $<HTMLInputElement>(id);
   input.checked = prefs[key];
   input.addEventListener('change', () => {
     prefs[key] = input.checked;
     savePrefs(prefs);
     if (key === 'tremolo') player.setTremolo(input.checked);
+    if (key === 'minusOne') band.setMuted(mutedSet());
     renderer.setOptions({ lang: prefs.lang, showKeys: prefs.showKeys, showNotes: prefs.showNotes });
   });
 };
 bindToggle('tremolo', 'tremolo');
 bindToggle('notes', 'showNotes');
 bindToggle('keys', 'showKeys');
+bindToggle('minus', 'minusOne');
 
 const volume = $<HTMLInputElement>('volume');
 volume.value = String(prefs.volume);

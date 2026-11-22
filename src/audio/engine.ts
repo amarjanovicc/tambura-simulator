@@ -1,4 +1,4 @@
-import type { InstrumentDef } from '../music/instruments';
+import type { InstrumentDef, InstrumentId } from '../music/instruments';
 import { midiToFreq } from '../music/notes';
 import { renderPluck } from './karplus';
 
@@ -7,26 +7,42 @@ interface Voice {
   gain: GainNode;
 }
 
-const MAX_CACHE = 160;
+export interface PluckRequest {
+  course: number;
+  midi: number;
+  velocity: number;
+  doubled: boolean;
+  /** Seconds from now (used to spread a strum or schedule a song). */
+  delay?: number;
+  pan?: number;
+  /** Defaults to the selected instrument. */
+  inst?: InstrumentDef;
+  /** Voice group: a new note chokes the previous note of the same group and course. */
+  group?: string;
+  /** Damp the note after this many seconds (short "ćuć" strokes). */
+  staccato?: number;
+}
+
+const MAX_CACHE = 200;
 
 /**
  * Web Audio graph:
- *   voice (buffer -> velocity low-pass -> gain -> pan) -> body (high-pass + resonances)
+ *   voice (buffer -> velocity low-pass -> gain -> pan) -> instrument body (high-pass + resonances)
  *     -> dry + short reverb -> limiter -> volume -> speakers
  *
+ * Each instrument gets its own body chain, so the whole band can play in one context.
  * The AudioContext is created on the first user gesture (browsers block audio before
- * that). One voice per course: re-plucking a course chokes its previous note, like a
+ * that). One voice per course and group: re-plucking chokes the previous note, like a
  * real string.
  */
 export class AudioEngine {
   private ctx: AudioContext | null = null;
-  private bodyIn!: GainNode;
-  private bodyFilters: BiquadFilterNode[] = [];
-  private highpass!: BiquadFilterNode;
+  private mix!: GainNode;
   private volume!: GainNode;
   private instrument: InstrumentDef | null = null;
+  private readonly bodies = new Map<InstrumentId, AudioNode>();
   private readonly cache = new Map<string, AudioBuffer>();
-  private readonly voices = new Map<number, Voice>();
+  private readonly voices = new Map<string, Voice>();
   private volumeLevel = 0.8;
 
   get running(): boolean {
@@ -43,7 +59,6 @@ export class AudioEngine {
 
   setInstrument(inst: InstrumentDef): void {
     this.instrument = inst;
-    if (this.ctx) this.applyBody(inst);
   }
 
   setVolume(v: number): void {
@@ -52,52 +67,60 @@ export class AudioEngine {
   }
 
   /** Renders the given notes ahead of time in idle slices, so the first pluck is instant. */
-  prewarm(midis: Iterable<number>, doubled: Set<number>): void {
+  prewarm(midis: Iterable<number>, doubled: Set<number>, inst = this.instrument): void {
+    if (!this.ctx || !inst) return;
     const queue = [...new Set(midis)];
     const step = (): void => {
       const t0 = performance.now();
       while (queue.length && performance.now() - t0 < 6) {
         const midi = queue.shift()!;
-        this.buffer(midi, 0);
-        if (doubled.has(midi)) this.buffer(midi, 1);
+        this.buffer(inst, midi, 0);
+        if (doubled.has(midi)) this.buffer(inst, midi, 1);
       }
       if (queue.length) schedule(step);
     };
-    if (this.ctx) schedule(step);
+    schedule(step);
+  }
+
+  /** Renders one note right now (used before a song starts). */
+  render(inst: InstrumentDef, midi: number, doubled: boolean): void {
+    if (!this.ctx) return;
+    this.buffer(inst, midi, 0);
+    if (doubled) this.buffer(inst, midi, 1);
   }
 
   /**
-   * Plucks a course. `delay` is seconds from now (used to spread a strum).
-   * Doubled courses get a second string, slightly detuned and a few ms late, which
-   * gives the tamburica its shimmer.
+   * Plucks a course. Doubled courses get a second string, slightly detuned and a few
+   * ms late, which gives the tamburica its shimmer.
    */
-  pluck(course: number, midi: number, velocity: number, doubled: boolean, delay = 0, pan = 0): void {
+  pluck(req: PluckRequest): void {
     const ctx = this.ctx;
-    const inst = this.instrument;
+    const inst = req.inst ?? this.instrument;
     // A context still resuming (first gesture) just plays the note a moment later.
     if (!ctx || !inst || ctx.state === 'closed') return;
-    const when = ctx.currentTime + Math.max(0, delay);
-    this.choke(course, when);
+    const when = ctx.currentTime + Math.max(0, req.delay ?? 0);
+    const key = `${req.group ?? 'user'}:${inst.id}:${req.course}`;
+    this.choke(key, when);
 
-    const v = Math.min(1, Math.max(0.05, velocity));
+    const v = Math.min(1, Math.max(0.05, req.velocity));
     const gain = ctx.createGain();
     gain.gain.value = (0.15 + 0.85 * v * v) * inst.tone.gain * 0.5;
 
     // Softer plucks are darker: dynamic low-pass relative to the note.
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = Math.min(18000, midiToFreq(midi) * (3 + 30 * v * v));
+    lp.frequency.value = Math.min(18000, midiToFreq(req.midi) * (3 + 30 * v * v));
     lp.Q.value = 0.5;
 
     const panner = ctx.createStereoPanner();
-    panner.pan.value = pan;
-    lp.connect(gain).connect(panner).connect(this.bodyIn);
+    panner.pan.value = req.pan ?? 0;
+    lp.connect(gain).connect(panner).connect(this.body(inst));
 
     const sources: AudioBufferSourceNode[] = [];
-    const strings = doubled ? 2 : 1;
+    const strings = req.doubled ? 2 : 1;
     for (let s = 0; s < strings; s++) {
       const src = ctx.createBufferSource();
-      src.buffer = this.buffer(midi, s);
+      src.buffer = this.buffer(inst, req.midi, s);
       if (s === 1) src.playbackRate.value = 2 ** (inst.tone.courseDetune / 1200);
       src.connect(lp);
       src.start(when + s * (0.002 + Math.random() * 0.004));
@@ -105,22 +128,30 @@ export class AudioEngine {
     }
     const voice: Voice = { sources, gain };
     sources[0]!.onended = () => {
-      if (this.voices.get(course) === voice) this.voices.delete(course);
+      if (this.voices.get(key) === voice) this.voices.delete(key);
       gain.disconnect();
     };
-    this.voices.set(course, voice);
+    this.voices.set(key, voice);
+    if (req.staccato !== undefined) this.choke(key, when + req.staccato);
   }
 
-  /** Damps every string (used when switching instrument). */
-  stopAll(): void {
+  /** Damps every string of a voice group, or all strings. */
+  stopAll(group?: string): void {
     if (!this.ctx) return;
-    for (const course of [...this.voices.keys()]) this.choke(course, this.ctx.currentTime);
+    for (const key of [...this.voices.keys()]) {
+      if (!group || key.startsWith(`${group}:`)) this.choke(key, this.ctx.currentTime);
+    }
   }
 
-  private choke(course: number, when: number): void {
-    const prev = this.voices.get(course);
+  /** Seconds on the audio clock, for scheduling. */
+  get currentTime(): number {
+    return this.ctx?.currentTime ?? 0;
+  }
+
+  private choke(key: string, when: number): void {
+    const prev = this.voices.get(key);
     if (!prev) return;
-    this.voices.delete(course);
+    this.voices.delete(key);
     const g = prev.gain.gain;
     g.cancelScheduledValues(when);
     g.setValueAtTime(g.value, when);
@@ -134,9 +165,8 @@ export class AudioEngine {
     }
   }
 
-  private buffer(midi: number, variant: number): AudioBuffer {
+  private buffer(inst: InstrumentDef, midi: number, variant: number): AudioBuffer {
     const ctx = this.ctx!;
-    const inst = this.instrument!;
     const key = `${inst.id}:${midi}:${variant}`;
     const hit = this.cache.get(key);
     if (hit) {
@@ -165,6 +195,30 @@ export class AudioEngine {
     return buf;
   }
 
+  /** The instrument's body: high-pass and three resonances, created on first use. */
+  private body(inst: InstrumentDef): AudioNode {
+    const existing = this.bodies.get(inst.id);
+    if (existing) return existing;
+    const ctx = this.ctx!;
+    const input = ctx.createGain();
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.Q.value = 0.7;
+    hp.frequency.value = inst.tone.highpass;
+    let node: AudioNode = input.connect(hp);
+    for (const [freq, q, gain] of inst.tone.body) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'peaking';
+      f.frequency.value = freq;
+      f.Q.value = q;
+      f.gain.value = gain;
+      node = node.connect(f);
+    }
+    node.connect(this.mix);
+    this.bodies.set(inst.id, input);
+    return input;
+  }
+
   private create(): void {
     const Ctor: typeof AudioContext | undefined =
       window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -176,21 +230,7 @@ export class AudioEngine {
     const ctx = new Ctor({ latencyHint: 'interactive' });
     this.ctx = ctx;
 
-    this.bodyIn = ctx.createGain();
-    this.highpass = ctx.createBiquadFilter();
-    this.highpass.type = 'highpass';
-    this.highpass.Q.value = 0.7;
-    this.bodyIn.connect(this.highpass);
-
-    let node: AudioNode = this.highpass;
-    for (let i = 0; i < 3; i++) {
-      const f = ctx.createBiquadFilter();
-      f.type = 'peaking';
-      node.connect(f);
-      node = f;
-      this.bodyFilters.push(f);
-    }
-
+    this.mix = ctx.createGain();
     const reverb = ctx.createConvolver();
     reverb.buffer = makeRoomImpulse(ctx, 1.3);
     const wet = ctx.createGain();
@@ -204,8 +244,8 @@ export class AudioEngine {
     this.volume = ctx.createGain();
     this.volume.gain.value = this.volumeLevel;
 
-    node.connect(limiter);
-    node.connect(reverb).connect(wet).connect(limiter);
+    this.mix.connect(limiter);
+    this.mix.connect(reverb).connect(wet).connect(limiter);
     limiter.connect(this.volume).connect(ctx.destination);
 
     // A silent buffer finishes unlocking on older iOS.
@@ -213,20 +253,6 @@ export class AudioEngine {
     silent.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
     silent.connect(ctx.destination);
     silent.start();
-
-    if (this.instrument) this.applyBody(this.instrument);
-  }
-
-  private applyBody(inst: InstrumentDef): void {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime;
-    this.highpass.frequency.setTargetAtTime(inst.tone.highpass, t, 0.01);
-    this.bodyFilters.forEach((f, i) => {
-      const [freq, q, gain] = inst.tone.body[i] ?? [1000, 1, 0];
-      f.frequency.setTargetAtTime(freq, t, 0.01);
-      f.Q.setTargetAtTime(q, t, 0.01);
-      f.gain.setTargetAtTime(gain, t, 0.01);
-    });
   }
 }
 

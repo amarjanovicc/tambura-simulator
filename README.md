@@ -39,6 +39,16 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#bugarija`
 - A chord button sets the chord shape and plays it once. Strum to keep playing it.
 - On a phone, hold a fret with one finger and strum with another.
 
+**Band (▶ Kolo)**
+
+- The whole band plays a short kolo in D major. It is an original tune in a Slavonian style:
+  bisernica melody with tremolo, brač a third below, bugarija off-beat "ćuć" chords and berde bass.
+- The neck shows the selected instrument's part as it plays.
+- **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
+  The dots show what to play, and strumming plays the shown shape.
+- Songs are data in [`src/music/songs.ts`](src/music/songs.ts). Write the bisernica melody and the chords,
+  and [`src/music/arrange.ts`](src/music/arrange.ts) derives the other parts.
+
 **Keyboard** (key positions, so it works on any layout)
 
 - The four key rows are the four strings, and the column is the fret. The number row is the lowest string.
@@ -98,8 +108,9 @@ src/
   main.ts              UI wiring, preferences, i18n (hr/en)
   player.ts            musical state: instrument, chord, held frets, tremolo
   audio/karplus.ts     string synthesis (pure, unit-tested)
-  audio/engine.ts      Web Audio graph and voice management
-  music/               tunings, chord search, keyboard map, note names
+  audio/engine.ts      Web Audio graph and voice management (one body chain per instrument)
+  audio/band.ts        lookahead scheduler that plays a song with the whole band
+  music/               tunings, chord search, songs + band arrangement, keyboard map, note names
   view/geometry.ts     layout + hit-testing for both orientations
   view/renderer.ts     canvas drawing and string animation
   input/controller.ts  pointer and keyboard input
@@ -110,5 +121,5 @@ src/
 - Recorded samples per instrument, mixed with or replacing the synthesis.
 - A-system tunings, plus čelo and kontra.
 - More frets and position shifting, and a capo.
-- A band mode, where each instrument gets its own part of a song.
+- More songs, a tempo control and a loop for practising along with the band.
 - Embedding in the portfolio (replacing the old "Tambura animation" experiment).

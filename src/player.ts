@@ -24,6 +24,7 @@ export class Player {
   /** Insertion-ordered: the latest hold on a course wins, like the highest finger on a string. */
   private readonly holds = new Map<string, { course: number; fret: number }>();
   private readonly repeaters = new Map<string, ReturnType<typeof setInterval>>();
+  private readonly bandTimes = new Map<number, number>();
   private readonly changeListeners = new Set<() => void>();
   private readonly pluckListeners = new Set<(e: PluckEvent) => void>();
 
@@ -47,7 +48,7 @@ export class Player {
   setInstrument(inst: InstrumentDef): void {
     this.stopAllRepeats();
     this.holds.clear();
-    this.engine.stopAll();
+    this.engine.stopAll('user');
     this.inst = inst;
     this.voicings = voicingsFor(inst);
     if (this.chordId && !this.voicings.has(this.chordId)) this.chordId = null;
@@ -108,7 +109,7 @@ export class Player {
     if (!c || fret === null) return;
     const n = this.inst.courses.length;
     const pan = n > 1 ? (course / (n - 1) - 0.5) * 0.35 : 0;
-    this.engine.pluck(course, c.midi + fret, velocity, c.doubled, delay, pan);
+    this.engine.pluck({ course, midi: c.midi + fret, velocity, doubled: c.doubled, delay, pan });
     for (const fn of this.pluckListeners) fn({ course, fret, velocity, delay });
   }
 
@@ -125,6 +126,34 @@ export class Player {
         this.pluck(course, alt ? 0.55 : 0.68);
       });
     }
+  }
+
+  /**
+   * Shows a note the band plays on this instrument: the fret dot moves there and, when
+   * the note is audible, the string vibrates. The sound itself comes from the band.
+   */
+  showBandNote(course: number, fret: number, velocity: number, audible: boolean): void {
+    // Lift fingers from strings the band left more than a moment ago, so a melody shows
+    // one note at a time while a strummed chord keeps all its dots.
+    const now = performance.now();
+    for (const [c, at] of this.bandTimes) {
+      if (c !== course && now - at > 120) {
+        this.holds.delete(`band:${c}`);
+        this.bandTimes.delete(c);
+      }
+    }
+    this.bandTimes.set(course, now);
+    const source = `band:${course}`;
+    this.holds.delete(source);
+    this.holds.set(source, { course, fret });
+    this.emitChange();
+    if (audible) for (const fn of this.pluckListeners) fn({ course, fret, velocity, delay: 0 });
+  }
+
+  clearBand(): void {
+    this.bandTimes.clear();
+    for (const key of [...this.holds.keys()]) if (key.startsWith('band:')) this.holds.delete(key);
+    this.emitChange();
   }
 
   release(source: string): void {

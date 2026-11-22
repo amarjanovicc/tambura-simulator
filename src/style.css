@@ -340,8 +340,7 @@ dialog ul {
   }
 
   .controls {
-    flex-wrap: nowrap;
-    gap: 10px;
+    gap: 4px 10px;
   }
 }
 
@@ -377,4 +376,14 @@ dialog ul {
   .toggle {
     min-height: 28px;
   }
+}
+
+.band {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.band .chip {
+  min-width: 84px;
 }

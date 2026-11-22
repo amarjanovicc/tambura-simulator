@@ -15,6 +15,10 @@ const strings = {
     tapToStart: 'Dodirni žice ili pritisni tipku za zvuk',
     tuning: 'Ugađanje',
     eSystem: 'E-sustav',
+    playSong: '▶ Kolo',
+    stopSong: '■ Stop',
+    minusOne: 'Bez mene',
+    minusOneHint: 'Utišaj svoj instrument i sviraj njegovu dionicu uz sastav; točke na vratu pokazuju što svirati.',
     helpIntro:
       'Odaberi instrument, pa sviraj. Dvostruke žice su nacrtane kao par. Ugađanje je E-sustav (Farkaš).',
     helpMouseTitle: 'Miš i dodir',
@@ -23,6 +27,7 @@ const strings = {
       'Povuci preko žica iznad otvora (desno ili dolje) za trzanje. Brže povlačenje = jače.',
       'Gumb akorda postavi hvat i odmah ga odsvira; trzanjem ga sviraš dalje.',
       'Na mobitelu: jednim prstom drži prag, drugim trzaj.',
+      '▶ Kolo: cijeli sastav (bisernica, brač, bugarija, berde) svira kratko kolo. Uz „Bez mene“ tvoj instrument šuti, a točke na vratu pokazuju njegovu dionicu.',
     ],
     helpKeysTitle: 'Tipkovnica',
     helpKeys: [
@@ -46,6 +51,10 @@ const strings = {
     tapToStart: 'Touch the strings or press a key for sound',
     tuning: 'Tuning',
     eSystem: 'E system',
+    playSong: '▶ Kolo',
+    stopSong: '■ Stop',
+    minusOne: 'Without me',
+    minusOneHint: 'Mute your instrument and play its part along with the band; the dots on the neck show what to play.',
     helpIntro:
       'Pick an instrument and play. Doubled strings are drawn as a pair. Tuning is the E system (Farkaš).',
     helpMouseTitle: 'Mouse and touch',
@@ -54,6 +63,7 @@ const strings = {
       'Drag across the strings over the sound hole (right or bottom) to strum. Faster = louder.',
       'A chord button sets the shape and plays it once; keep strumming to play it again.',
       'On a phone: hold a fret with one finger and strum with another.',
+      '▶ Kolo: the whole band (bisernica, brač, bugarija, berde) plays a short kolo. With “Without me” your instrument is silent and the dots on the neck show its part.',
     ],
     helpKeysTitle: 'Keyboard',
     helpKeys: [
