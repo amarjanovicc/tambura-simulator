@@ -382,8 +382,47 @@ export const CIRO_KOLO: Song = {
   ending: { chord: 'A', note: 73, beats: 1.5 },
 };
 
+const TICEK_A: readonly SongBar[] = [
+  { chord: 'A', melody: [[81, 1], [80, 1], [81, 1], [80, 1]] },
+  { chord: 'A', melody: [[81, 2], [76, 2]] },
+  { chord: 'D', melody: [[78, 1], [78, 1], [74, 1], [78, 1]] },
+];
+const TICEK_B: readonly SongBar[] = [
+  { chord: 'D', melody: [[74, 1], [74, 1], [74, 0.5], [76, 0.5], [78, 1]] },
+  { chord: 'A7', melody: [[79, 1], [79, 1], [79, 0.5], [78, 0.5], [76, 1]] },
+];
+
+/**
+ * "Krici krici tiček", a traditional Croatian drmeš, from John Chambers' ABC
+ * transcription (trillian.mit.edu, "O: Croatia", the A/D version): the first strain in A
+ * major, the second in D major, each with its repeat and first/second endings written
+ * out; the whole dance twice.
+ */
+export const KRICI_KRICI_TICEK: Song = {
+  id: 'krici-krici-ticek',
+  title: { hr: 'Krici krici tiček (drmeš)', en: 'Krici krici tiček (drmeš)' },
+  bpm: 120,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [
+    ...TICEK_A,
+    { chord: 'A', melody: [[76, 2], [73, 2]] },
+    ...TICEK_A,
+    { chord: ['A', 'A7'], melody: [[76, 2], [76, 2]] },
+    ...TICEK_B,
+    { chord: 'D', melody: [[74, 1], [78, 1], [79, 0.5], [78, 0.5], [76, 0.5], [74, 0.5]] },
+    { chord: 'A', melody: [[76, 2], [69, 2]] },
+    ...TICEK_B,
+    { chord: ['D', 'E7'], melody: [[74, 1], [78, 1], [79, 0.5], [78, 0.5], [76, 0.5], [74, 0.5]] },
+    { chord: 'A', melody: [[76, 2, true], [76, 2]] },
+  ],
+  ending: { chord: 'A', note: 73, beats: 1.5 },
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, RUZMARIN, KOLO_KALENDARA, CIRO_KOLO, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
+export const SONGS: readonly Tune[] = [KOLO_E, RUZMARIN, KOLO_KALENDARA, CIRO_KOLO, KRICI_KRICI_TICEK, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
