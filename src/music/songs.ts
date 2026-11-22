@@ -50,4 +50,54 @@ export const KOLO_E: Song = {
   ending: { chord: 'E', note: 88, beats: 1.5 },
 };
 
-export const SONGS: readonly Song[] = [KOLO_E];
+/**
+ * Backing only: the band plays the chords and you play the melody. Each bar lists its
+ * chords; two chords share the bar half and half.
+ */
+export interface BackingTrack {
+  id: string;
+  title: Record<Lang, string>;
+  bpm: number;
+  /** Beats per bar. */
+  meter: number;
+  bars: readonly (readonly string[])[];
+  /** Final chord, held. */
+  ending: string;
+}
+
+const VERSE = [['Em'], ['Em'], ['D7'], ['G'], ['E7'], ['Am'], ['Em', 'D7'], ['Am', 'H7']] as const;
+const CHORUS = [
+  ['G', 'D7'],
+  ['G', 'E7'],
+  ['Am'],
+  ['D7'],
+  ['G'],
+  ['G', 'D7'],
+  ['G', 'E7'],
+  ['Am'],
+  ['C', 'Cisdim'],
+  ['G', 'A7'],
+  ['D7'],
+  ['G'],
+] as const;
+
+/**
+ * "Osam tamburaša s Petrovaradina" (Ratko Šoć; sung by Zvonko Bogdan, 1977): the
+ * accompaniment only. The melody and lyrics are the author's and are not reproduced;
+ * the chords follow a published chord sheet, with bar lengths estimated: verses in E
+ * minor, refrain in G, three times. A two-bar Em–H7 lead-in.
+ */
+export const OSAM_TAMBURASA: BackingTrack = {
+  id: 'osam-tamburasa',
+  title: { hr: 'Osam tamburaša (pratnja)', en: 'Osam tamburaša (backing)' },
+  bpm: 84,
+  meter: 4,
+  bars: [['Em'], ['H7'], ...VERSE, ...CHORUS, ...VERSE, ...CHORUS, ...VERSE, ...CHORUS],
+  ending: 'G',
+};
+
+export type Tune = Song | BackingTrack;
+
+export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
+
+export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA];

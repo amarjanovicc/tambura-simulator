@@ -35,6 +35,7 @@
       <main class="stage">
         <canvas id="board" role="application"></canvas>
         <p class="hint" id="hint" data-i18n="tapToStart"></p>
+        <p class="now-chord" id="now-chord" aria-live="polite" hidden><span class="now"></span><span class="next"></span></p>
       </main>
 
       <aside class="panel">
@@ -46,6 +47,7 @@
         <footer class="controls">
           <div class="group band">
             <h3 class="group-label" data-i18n="bandLabel"></h3>
+            <label class="song-pick in-band"><span class="sr-only" data-i18n="songLabel"></span><select class="song-select"></select></label>
             <button type="button" class="play" id="band-btn" aria-pressed="false"></button>
             <p class="group-hint" data-i18n="bandHint"></p>
             <label class="toggle" id="minus-label"><input type="checkbox" id="minus" /> <span data-i18n="minusOne"></span></label>
@@ -63,6 +65,7 @@
             </svg>
           </button>
           <div class="settings group" id="settings" popover>
+            <label class="song-pick in-settings"><span data-i18n="songLabel"></span><select class="song-select"></select></label>
             <h3 class="group-label" data-i18n="viewLabel"></h3>
             <label class="toggle"><input type="checkbox" id="notes" /> <span data-i18n="noteNames"></span></label>
             <label class="toggle keys-toggle"><input type="checkbox" id="keys" /> <span data-i18n="keyLabels"></span></label>

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { arrange, placeNote, thirdBelow } from './arrange';
+import { arrange, arrangeBacking, placeNote, thirdBelow } from './arrange';
+import { chordById, findVoicing } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { pitchClass } from './notes';
-import { KOLO_E } from './songs';
+import { KOLO_E, OSAM_TAMBURASA } from './songs';
 
 describe('arrange', () => {
   const { events, duration } = arrange(KOLO_E);
@@ -57,5 +58,52 @@ describe('helpers', () => {
     expect(thirdBelow(83, 4)).toBe(80); // H -> Gis
     expect(thirdBelow(80, 4)).toBe(76); // Gis -> E
     expect(pitchClass(thirdBelow(85, 4))).toBe(9); // Cis -> A
+  });
+});
+
+describe('arrangeBacking', () => {
+  const { events, duration, chords } = arrangeBacking(OSAM_TAMBURASA);
+  const beat = 60 / OSAM_TAMBURASA.bpm;
+  const bar = OSAM_TAMBURASA.meter * beat;
+  const end = OSAM_TAMBURASA.bars.length * bar;
+
+  it('leaves the melody to you: no prim, and every note within reach', () => {
+    expect(events.some((e) => e.inst === 'prim')).toBe(false);
+    for (const e of events) {
+      const inst = getInstrument(e.inst);
+      expect(inst.courses[e.course]!.midi + e.fret).toBe(e.midi);
+      expect(e.fret).toBeLessThanOrEqual(inst.visibleFrets);
+    }
+    expect(duration).toBeGreaterThan(end);
+  });
+
+  it('strums the kontra on beats 2 and 4, and starts each chord with the berde root', () => {
+    const phase = (t: number): number => (Math.round((t / beat) * 100) / 100) % OSAM_TAMBURASA.meter;
+    for (const e of events.filter((x) => x.time < end - 0.01)) {
+      if (e.inst === 'kontra') expect([1, 3]).toContain(Math.round(phase(e.time)));
+      if (e.inst === 'berde') expect([0, 2]).toContain(phase(e.time));
+    }
+  });
+
+  it('reports every chord change, in order', () => {
+    expect(chords[0]).toEqual({ time: 0, id: 'Em' });
+    expect(chords.at(-1)?.id).toBe(OSAM_TAMBURASA.ending);
+    for (let i = 1; i < chords.length; i++) {
+      expect(chords[i]!.time).toBeGreaterThan(chords[i - 1]!.time);
+      expect(chords[i]!.id).not.toBe(chords[i - 1]!.id);
+    }
+  });
+});
+
+describe('song chords', () => {
+  it('every instrument has a shape for every chord a song uses', () => {
+    const used = new Set([...OSAM_TAMBURASA.bars.flat(), OSAM_TAMBURASA.ending]);
+    for (const inst of INSTRUMENTS) {
+      for (const id of used) {
+        const chord = chordById(id);
+        expect(chord, id).toBeDefined();
+        expect(findVoicing(inst, chord!), `${inst.id} ${id}`).not.toBeNull();
+      }
+    }
   });
 });

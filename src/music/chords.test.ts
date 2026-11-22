@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CHORDS, findVoicing, voicingsFor } from './chords';
+import { CHORDS, SONG_CHORDS, findVoicing, voicingsFor } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { chordIndexForKey, fretForKey, keyForFret } from './keymap';
 import { helmholtz, noteName, pitchClass } from './notes';
 
 describe('voicings', () => {
   for (const inst of INSTRUMENTS) {
-    it(`${inst.id} can play every chord in the palette`, () => {
-      expect(voicingsFor(inst).size).toBe(CHORDS.length);
+    it(`${inst.id} can play every chord in the palette and the songs`, () => {
+      expect(voicingsFor(inst).size).toBe(CHORDS.length + SONG_CHORDS.length);
     });
   }
 

@@ -6,7 +6,8 @@ import { Controller } from './input/controller';
 import { CHORDS } from './music/chords';
 import { INSTRUMENTS, type InstrumentId, getInstrument, resolveInstrumentId } from './music/instruments';
 import { helmholtz } from './music/notes';
-import { KOLO_E } from './music/songs';
+import { SONGS, type Tune, isBacking } from './music/songs';
+import { chordById } from './music/chords';
 import { Player } from './player';
 import { Renderer, type ViewOptions } from './view/renderer';
 
@@ -18,6 +19,7 @@ interface Prefs {
   showKeys: boolean;
   neckOnly: boolean;
   minusOne: boolean;
+  song: string;
   volume: number;
 }
 
@@ -33,6 +35,7 @@ function loadPrefs(): Prefs {
     showKeys: false,
     neckOnly: false,
     minusOne: false,
+    song: SONGS[0]!.id,
     volume: 0.7,
   };
   try {
@@ -88,6 +91,12 @@ new Controller(canvas, renderer, player, engine, () => {
 });
 
 const bandBtn = $<HTMLButtonElement>('band-btn');
+const nowChord = $('now-chord');
+const selectedSong = (): Tune => SONGS.find((x) => x.id === prefs.song) ?? SONGS[0]!;
+/** The chord the player had before a backing track took over the neck. */
+let chordBefore: string | null = null;
+let playing: Tune | null = null;
+
 const band = new BandPlayer(
   engine,
   (e, audible) => {
@@ -95,7 +104,20 @@ const band = new BandPlayer(
   },
   () => {
     player.clearBand();
+    nowChord.hidden = true;
+    if (playing && isBacking(playing)) player.selectChord(chordBefore, false);
+    playing = null;
     renderBandButton();
+  },
+  (id, next) => {
+    const s = t(prefs.lang);
+    const label = (c: string): string => chordById(c)?.label[prefs.lang] ?? c;
+    nowChord.querySelector('.now')!.textContent = label(id);
+    nowChord.querySelector('.next')!.textContent = next ? `${s.nextChord} ${label(next)}` : '';
+    nowChord.hidden = false;
+    nowChord.animate([{ transform: 'scale(1.08)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
+    // With a backing track the neck shows the chord, so you can strum along or find the tune.
+    if (playing && isBacking(playing)) player.selectChord(id, false);
   },
 );
 const mutedSet = (): Set<InstrumentId> => new Set(prefs.minusOne ? [player.inst.id] : []);
@@ -111,10 +133,36 @@ bandBtn.addEventListener('click', () => {
   if (band.playing) band.stop();
   else {
     band.setMuted(mutedSet());
-    band.play(KOLO_E);
+    chordBefore = player.chordId;
+    playing = selectedSong();
+    band.play(playing);
   }
   renderBandButton();
 });
+
+const songSelects = [...document.querySelectorAll<HTMLSelectElement>('.song-select')];
+function renderSongs(): void {
+  for (const select of songSelects) {
+    select.replaceChildren(
+      ...SONGS.map((song) => {
+        const option = document.createElement('option');
+        option.value = song.id;
+        option.textContent = song.title[prefs.lang];
+        return option;
+      }),
+    );
+    select.value = selectedSong().id;
+  }
+  bandBtn.title = selectedSong().title[prefs.lang];
+}
+for (const select of songSelects) {
+  select.addEventListener('change', () => {
+    prefs.song = select.value;
+    savePrefs(prefs);
+    if (band.playing) band.stop();
+    renderSongs();
+  });
+}
 
 const instrumentsNav = $('instruments');
 const chordsRow = $('chords');
@@ -251,6 +299,7 @@ function applyLang(): void {
   };
   $('minus-label').title = s.minusOneHint;
   renderBandButton();
+  renderSongs();
   list('help-mouse', s.helpMouse);
   list('help-keys', s.helpKeys);
   renderInstruments();

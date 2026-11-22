@@ -1,6 +1,6 @@
-import { type BandEvent, arrange } from '../music/arrange';
+import { type BandEvent, arrangeTune } from '../music/arrange';
 import { type InstrumentId, getInstrument } from '../music/instruments';
-import type { Song } from '../music/songs';
+import type { Tune } from '../music/songs';
 import type { AudioEngine } from './engine';
 
 const LOOKAHEAD_S = 0.3;
@@ -16,6 +16,8 @@ const PAN: Record<InstrumentId, number> = { prim: -0.3, basprim: 0.15, kontra: 0
  */
 export class BandPlayer {
   private events: BandEvent[] = [];
+  private chords: { time: number; id: string }[] = [];
+  private nextChord = 0;
   private next = 0;
   private start = 0;
   private end = 0;
@@ -27,6 +29,8 @@ export class BandPlayer {
     private readonly engine: AudioEngine,
     private readonly onNote: (e: BandEvent, audible: boolean) => void,
     private readonly onEnd: () => void,
+    /** Called as each chord starts, so the interface can show it. */
+    private readonly onChord: (id: string, next: string | null) => void = () => {},
   ) {}
 
   get playing(): boolean {
@@ -37,10 +41,12 @@ export class BandPlayer {
     this.muted = muted;
   }
 
-  play(song: Song): void {
+  play(song: Tune): void {
     this.stop(false);
     this.engine.unlock();
-    const { events, duration } = arrange(song);
+    const { events, duration, chords } = arrangeTune(song);
+    this.chords = chords;
+    this.nextChord = 0;
     // Render every note up front (~1 ms each) so nothing is computed mid-song.
     for (const e of events) {
       const inst = getInstrument(e.inst);
@@ -96,6 +102,18 @@ export class BandPlayer {
         this.visuals.delete(id);
         this.onNote(e, audible);
       }, delay * 1000);
+      this.visuals.add(id);
+    }
+    while (this.nextChord < this.chords.length) {
+      const c = this.chords[this.nextChord]!;
+      const at = this.start + c.time;
+      if (at > horizon) break;
+      const following = this.chords[this.nextChord + 1]?.id ?? null;
+      this.nextChord++;
+      const id = setTimeout(() => {
+        this.visuals.delete(id);
+        this.onChord(c.id, following);
+      }, Math.max(0, at - now) * 1000);
       this.visuals.add(id);
     }
     if (this.next >= this.events.length && now > this.end) this.stop();

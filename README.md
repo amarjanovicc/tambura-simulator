@@ -39,11 +39,18 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#kontra` (
 - A chord button sets the chord shape and plays it once. Strum to keep playing it.
 - On a phone, hold a fret with one finger and strum with another.
 
-**Band (▶ Kolo)**
+**Band (▶ Play / Sviraj)**
 
-- The whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
+Pick a song (in the rail, or under ⚙ on phones) and press play.
+
+- **Kolo u E-duru:** the whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
   prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
   bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
+- **Osam tamburaša (pratnja):** the accompaniment only, in 4/4 at 84 bpm: berde root and fifth,
+  kontra on beats 2 and 4, bas-prim holding the chord's third in tremolo. You play the melody; the
+  current and next chord show in the corner and the neck shows the chord's shape. The song (Ratko Šoć,
+  sung by Zvonko Bogdan) is under copyright, so only its chords are used (verses in E minor, refrain in
+  G, from a published chord sheet); the bar lengths are estimated.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.

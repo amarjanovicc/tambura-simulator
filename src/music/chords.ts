@@ -14,6 +14,7 @@ export interface ChordDef {
 const MAJOR = [0, 4, 7];
 const MINOR = [0, 3, 7];
 const DOM7 = [0, 4, 7, 10];
+const DIM = [0, 3, 6];
 
 const chord = (id: string, root: number, intervals: number[], hr: string, en: string): ChordDef => ({
   id,
@@ -40,6 +41,21 @@ export const CHORDS: readonly ChordDef[] = [
   chord('G', 7, MAJOR, 'G', 'G'),
   chord('D7', 2, DOM7, 'D7', 'D7'),
 ];
+
+/**
+ * Chords that songs use outside the E-key palette (minor keys, passing chords). They have
+ * no buttons, but the band plays them and your instrument shows their shapes.
+ */
+export const SONG_CHORDS: readonly ChordDef[] = [
+  chord('Em', 4, MINOR, 'Em', 'Em'),
+  chord('Am', 9, MINOR, 'Am', 'Am'),
+  chord('C', 0, MAJOR, 'C', 'C'),
+  chord('Cisdim', 1, DIM, 'Cis°', 'C#°'),
+];
+
+export function chordById(id: string): ChordDef | undefined {
+  return CHORDS.find((c) => c.id === id) ?? SONG_CHORDS.find((c) => c.id === id);
+}
 
 /** Fret per course, low to high. `null` means the course is not played. */
 export type Voicing = ReadonlyArray<number | null>;
@@ -122,7 +138,7 @@ function scoreShape(frets: number[], courses: number[], ch: ChordDef, required: 
 
 export function voicingsFor(inst: InstrumentDef): Map<string, Voicing> {
   const map = new Map<string, Voicing>();
-  for (const ch of CHORDS) {
+  for (const ch of [...CHORDS, ...SONG_CHORDS]) {
     const v = findVoicing(inst, ch);
     if (v) map.set(ch.id, v);
   }
