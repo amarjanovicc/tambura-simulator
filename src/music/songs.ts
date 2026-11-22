@@ -1,6 +1,6 @@
 import type { Lang } from '../i18n';
 
-/** [MIDI note, length in eighths, tremolo]. MIDI 0 is a rest. */
+/** [MIDI note, length in eighths (0.5 for a sixteenth), tremolo]. MIDI 0 is a rest. */
 export type MelodyNote = readonly [midi: number, eighths: number, tremolo?: boolean];
 
 export interface SongBar {
@@ -273,8 +273,45 @@ export const VRANAC: BackingTrack = {
   ending: 'Dm',
 };
 
+/**
+ * "Ružmarin", a traditional Croatian folk song, in A major (2/4), from the upper voice of
+ * John Chambers' two-voice ABC transcription (trillian.mit.edu, "O: Croatia"). Two
+ * eight-bar strains; the tune is played twice and comes home to A at the end (the
+ * transcription's strain ends on the dominant, for the repeat).
+ */
+export const RUZMARIN: Song = {
+  id: 'ruzmarin',
+  title: { hr: 'Ružmarin', en: 'Ružmarin (Rosemary)' },
+  bpm: 100,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [
+    // First strain
+    { chord: 'A', melody: [[76, 2], [75, 1], [76, 1]] },
+    { chord: 'D', melody: [[78, 3, true], [76, 1]] },
+    { chord: 'D', melody: [[78, 1], [76, 1], [74, 1], [73, 1]] },
+    { chord: ['E7', 'A'], melody: [[74, 2], [73, 2]] },
+    { chord: 'A7', melody: [[76, 2], [81, 1], [79, 1]] },
+    { chord: 'D', melody: [[78, 3, true], [76, 1]] },
+    { chord: 'D', melody: [[78, 1], [76, 1], [74, 1], [73, 1]] },
+    { chord: ['E7', 'A'], melody: [[74, 2], [73, 2]] },
+    // Second strain
+    { chord: 'A', melody: [[76, 2], [74, 1], [73, 1]] },
+    { chord: 'E7', melody: [[71, 1], [73, 1], [74, 2]] },
+    { chord: 'A', melody: [[73, 0.5], [74, 0.5], [76, 1], [73, 1], [69, 1]] },
+    { chord: 'E7', melody: [[71, 1], [73, 1], [74, 2]] },
+    { chord: 'A', melody: [[76, 2], [74, 1], [73, 1]] },
+    { chord: 'E7', melody: [[71, 1], [73, 1], [74, 2]] },
+    { chord: ['A', 'H7'], melody: [[73, 0.5], [74, 0.5], [76, 1], [73, 1], [69, 1]] },
+    { chord: 'E', melody: [[71, 2, true], [71, 2]] },
+  ],
+  ending: { chord: 'A', note: 73, beats: 1.5 },
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
+export const SONGS: readonly Tune[] = [KOLO_E, RUZMARIN, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];

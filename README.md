@@ -46,6 +46,9 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
 - **Kolo u E-duru:** the whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
   prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
   bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
+- **Ružmarin:** a traditional Croatian folk song in A major (2/4), played whole by the band with its
+  melody: two eight-bar strains, twice, resolving to A at the end. From the upper voice of John
+  Chambers' two-voice ABC transcription (trillian.mit.edu, "O: Croatia").
 - **Ajde lepa Maro (kolo):** a traditional Croatian kolo in D major, both eight-bar strains, twice.
   The melody is the upper voice of John Chambers' two-voice ABC transcription (abcnotation.com,
   "O: Croatia"); the arranged second prim lands on the transcription's lower voice.
