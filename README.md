@@ -63,6 +63,10 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
   sheet of Miroslav Škoro's 1992 song (D, Em, G, A7, and Fis, Hm, B in the refrain). Again only the
   chords are used; bar lengths and tempo are estimated. A second entry plays only its refrain, four
   times, for practising that part.
+- **U san mi dođu tambure (pratnja)** and **Vranac (pratnja)**: backing tracks from published chord
+  sheets (Ultimate Guitar): the first in E major (verse on H, then E, refrain on A) for TS Đeram's song,
+  the second in D minor (Dm, E, Gm, A; refrain D, Gm, C, F, A) as Zlatni Dukati play it. Chords only;
+  bar lengths and tempo are estimated.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.

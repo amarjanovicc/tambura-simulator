@@ -212,8 +212,69 @@ export const AJDE_LEPA_MARO: Song = {
   ending: { chord: 'D', note: 74, beats: 1.5 },
 };
 
+const SAN_VERSE_1 = [['H'], ['H'], ['H'], ['Cism'], ['Fis'], ['H'], ['H'], ['H'], ['H'], ['Cism'], ['Fis'], ['H']] as const;
+const SAN_VERSE_2 = [['E'], ['E'], ['E'], ['Fism'], ['H', 'H7'], ['E'], ['E'], ['E'], ['E'], ['Fism'], ['H'], ['E']] as const;
+const SAN_VERSE_3 = [['Fis'], ['H'], ['H'], ['Cism'], ['Fis'], ['H'], ['E'], ['E'], ['E'], ['Cism', 'Fism'], ['Fism'], ['H'], ['E'], ['E']] as const;
+const SAN_CHORUS = [
+  ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'], ['A'],
+  ['Fism', 'H'], ['E'],
+] as const;
+const SAN_INTERLUDE = [['A'], ['E'], ['A'], ['E'], ['Fism'], ['H'], ['E'], ['Fis']] as const;
+const SAN_LAST_CHORUS = [...SAN_CHORUS, ['A'], ['A'], ['E'], ['E'], ['A'], ['A'], ['E'], ['E'], ['Fism', 'H'], ['E']] as const;
+
+/**
+ * "U san mi dođu tambure" (TS Đeram with Stanko Sarić): the accompaniment only, in E
+ * major, from a published chord sheet (the song is under copyright; its melody and
+ * lyrics are not reproduced). The first verse sits on H, the second on E, the refrain
+ * on A; bar lengths and tempo are estimated.
+ */
+export const U_SAN_MI_DODU_TAMBURE: BackingTrack = {
+  id: 'u-san-mi-dodu-tambure',
+  title: { hr: 'U san mi dođu tambure (pratnja)', en: 'U san mi dođu tambure (backing)' },
+  bpm: 92,
+  meter: 4,
+  bars: [
+    ['H'], ['Cism'], ['Fis'], ['H'],
+    ...SAN_VERSE_1,
+    ...SAN_VERSE_2,
+    ...SAN_CHORUS,
+    ...SAN_INTERLUDE,
+    ...SAN_VERSE_3,
+    ...SAN_LAST_CHORUS,
+  ],
+  ending: 'E',
+};
+
+const VRANAC_VERSE = [['Dm'], ['E', 'Gm'], ['A'], ['Dm'], ['Dm'], ['E', 'Gm'], ['A'], ['Dm', 'A'], ['Dm']] as const;
+const VRANAC_CHORUS = [['Dm', 'D'], ['Gm'], ['C', 'F'], ['A'], ['Dm'], ['Gm'], ['A'], ['Dm', 'A'], ['Dm']] as const;
+
+/**
+ * "Vranac" (as played by Zlatni Dukati): the accompaniment only, in D minor, from a
+ * published chord sheet. No author is credited there, so like the other songs only the
+ * chords are used. Two verses, the refrain twice, a third verse, the refrain twice and a
+ * closing line; bar lengths and tempo are estimated.
+ */
+export const VRANAC: BackingTrack = {
+  id: 'vranac',
+  title: { hr: 'Vranac (pratnja)', en: 'Vranac (backing)' },
+  bpm: 104,
+  meter: 4,
+  bars: [
+    ['Dm'], ['Gm'], ['A'], ['Dm'],
+    ...VRANAC_VERSE,
+    ...VRANAC_VERSE,
+    ...VRANAC_CHORUS,
+    ...VRANAC_CHORUS,
+    ...VRANAC_VERSE,
+    ...VRANAC_CHORUS,
+    ...VRANAC_CHORUS,
+    ['Dm'], ['Gm'], ['A'], ['Dm', 'A'],
+  ],
+  ending: 'Dm',
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];
+export const SONGS: readonly Tune[] = [KOLO_E, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN, U_SAN_MI_DODU_TAMBURE, VRANAC];
