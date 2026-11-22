@@ -309,9 +309,78 @@ export const TIHA_NOC: Song = {
   ending: { chord: 'A', note: 69, beats: 2 },
 };
 
+const SELJANCICA_A: readonly SongBar[] = [
+  { chord: 'A', melody: [[73, 1], [74, 1], [76, 1], [78, 1]] },
+  { chord: 'A', melody: [[76, 1], [78, 1], [76, 2]] },
+  { chord: 'D', melody: [[81, 1], [81, 1], [80, 1], [78, 1]] },
+  { chord: 'A', melody: [[76, 2], [73, 2]] },
+];
+const SELJANCICA_BRIDGE: readonly SongBar[] = [
+  { chord: 'E7', melody: [[76, 2], [74, 2]] },
+  { chord: 'A', melody: [[76, 2], [73, 2]] },
+];
+const SELJANCICA_RUN: SongBar = { chord: ['A', 'E7'], melody: [[73, 0.5], [74, 0.5], [76, 1], [76, 1], [74, 1]] };
+const SELJANCICA_B: readonly SongBar[] = [
+  SELJANCICA_RUN,
+  SELJANCICA_RUN,
+  SELJANCICA_RUN,
+  { chord: 'A', melody: [[73, 2, true], [73, 2]] },
+];
+
+/**
+ * "Seljančica", the traditional kolo of Slavonia, Srijem and Serbia, from the upper voice
+ * of Deborah Jones' two-voice ABC transcription (VIFD Book 1, in Seymour Shlien's Balkan
+ * collection, "O: Serbia and Croatia"), moved from G up to A major for the E tuning. The
+ * first strain twice, the bridge, the second strain twice; the whole kolo twice.
+ */
+export const SELJANCICA: Song = {
+  id: 'seljancica',
+  title: { hr: 'Seljančica (kolo)', en: 'Seljančica (kolo)' },
+  bpm: 100,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [...SELJANCICA_A, ...SELJANCICA_A, ...SELJANCICA_BRIDGE, ...SELJANCICA_BRIDGE, ...SELJANCICA_B, ...SELJANCICA_B],
+  ending: { chord: 'A', note: 73, beats: 1.5 },
+};
+
+const DELIJE_A: readonly SongBar[] = [
+  { chord: 'G', melody: [[86, 1.5], [86, 0.5], [86, 1], [84, 1]] },
+  { chord: ['G', 'Dm'], melody: [[83, 1], [81, 1], [81, 1], [0, 1]] },
+  { chord: 'Dm', melody: [[74, 1], [77, 1], [81, 1], [81, 1]] },
+  { chord: 'Dm', melody: [[80, 1], [77, 1], [74, 1], [0, 1]] },
+];
+const DELIJE_B: readonly SongBar[] = [
+  { chord: 'Dm', melody: [[74, 1], [77, 1], [81, 2, true]] },
+  { chord: 'Dm', melody: [[83, 1], [81, 1], [81, 2, true]] },
+  { chord: ['Dm', 'E7'], melody: [[80, 1], [77, 1], [76, 1], [74, 1]] },
+  { chord: 'A', melody: [[76, 1], [76, 1], [76, 2, true]] },
+];
+
+/**
+ * "Igrale se delije", a traditional song of the Pannonian plain played by Slavonian and
+ * Vojvodina tamburaši, from Seymour Shlien's Balkan ABC collection ("O: Serbia"). Modal: D
+ * minor with a raised 6th and 7th, ending on A. Written an octave up so the bas-prim
+ * reaches it; each strain twice, the whole song twice.
+ */
+export const IGRALE_SE_DELIJE: Song = {
+  id: 'igrale-se-delije',
+  title: { hr: 'Igrale se delije', en: 'Igrale se delije' },
+  bpm: 90,
+  tonic: 5,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [...DELIJE_A, ...DELIJE_A, ...DELIJE_B, ...DELIJE_B],
+  ending: { chord: 'A', note: 76, beats: 1.5 },
+};
+
 /** The first song is the one selected by default. */
 export const SONGS: readonly Song[] = [
   CIRO_KOLO,
+  SELJANCICA,
+  IGRALE_SE_DELIJE,
   KOLO_KALENDARA,
   KRICI_KRICI_TICEK,
   RUZMARIN,

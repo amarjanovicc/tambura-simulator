@@ -50,6 +50,7 @@ export const SONG_CHORDS: readonly ChordDef[] = [
   chord('Fis', 6, MAJOR, 'Fis', 'F#'),
   // B-flat: "B" in Croatian, where H is B natural.
   chord('Bes', 10, MAJOR, 'B', 'B♭'),
+  chord('Dm', 2, MINOR, 'Dm', 'Dm'),
 ];
 
 export function chordById(id: string): ChordDef | undefined {
