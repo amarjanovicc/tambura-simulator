@@ -10,6 +10,8 @@ export interface ViewOptions {
   lang: Lang;
   showKeys: boolean;
   showNotes: boolean;
+  /** Only the neck, with the body cut off by the edge of the screen. */
+  neckOnly?: boolean;
 }
 
 interface Vibration {
@@ -64,8 +66,10 @@ export class Renderer {
   }
 
   setOptions(opts: ViewOptions): void {
+    const relayout = Boolean(opts.neckOnly) !== Boolean(this.opts.neckOnly);
     this.opts = opts;
-    this.invalidate();
+    if (relayout) this.relayout();
+    else this.invalidate();
   }
 
   resize(): void {
@@ -79,7 +83,9 @@ export class Renderer {
   relayout(): void {
     const rect = this.canvas.getBoundingClientRect();
     const inst = this.player.inst;
-    this.geometry = computeGeometry(rect.width, rect.height, inst.courses.length, inst.visibleFrets);
+    this.geometry = computeGeometry(rect.width, rect.height, inst.courses.length, inst.visibleFrets, {
+      neckOnly: this.opts.neckOnly,
+    });
     this.invalidate();
   }
 
@@ -99,7 +105,7 @@ export class Renderer {
 
   private staticLayer(inst: InstrumentDef): HTMLCanvasElement {
     const g = this.geometry;
-    const key = `${inst.id}:${this.canvas.width}x${this.canvas.height}:${g.frets.length}`;
+    const key = `${inst.id}:${this.canvas.width}x${this.canvas.height}:${g.frets.length}:${this.opts.neckOnly ? 'neck' : 'full'}`;
     if (this.layer && this.layerKey === key) return this.layer;
     const layer = this.layer ?? document.createElement('canvas');
     layer.width = this.canvas.width;

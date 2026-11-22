@@ -135,7 +135,9 @@ It works from 320 px wide, in portrait and in landscape.
 
 On wide screens and on phones in landscape, the chords and controls sit in a rail on the right, so the
 instrument gets the full height. In portrait they sit below it, and the rarer settings (note names, key
-labels, volume) open from the ⚙ button. The string spacing grows with the screen, up to 84 px. Animations
+labels, neck view, volume) open from the ⚙ button. **Neck view** (Samo vrat) fills the screen with the
+neck, with wider strings and bigger frets, and lets the body run off the edge like a close-up photo;
+you strum over its shoulders. The string spacing grows with the screen, up to 84 px. Animations
 (the sliding tab underline, the instrument switch, button presses, the pulsing light while the band plays)
 are switched off under `prefers-reduced-motion`.
 

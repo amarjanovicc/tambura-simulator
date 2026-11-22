@@ -27,4 +27,16 @@ describe('geometry', () => {
     expect(down).toEqual([0, 1, 2, 3]);
     expect(up).toEqual([3, 2, 1, 0]);
   });
+
+  it('neck view widens the strings and lets the body run off the canvas', () => {
+    const full = computeGeometry(375, 520, 4, 12);
+    const neck = computeGeometry(375, 520, 4, 12, { neckOnly: true });
+    expect(neck.spacing).toBeGreaterThan(full.spacing);
+    expect(neck.bodyEnd).toBeGreaterThan(neck.height);
+    expect(neck.bridge).toBeGreaterThan(neck.height);
+    // The strumming area is still on screen.
+    const x = neck.strings[1]!;
+    expect(hitTest(neck, x, neck.strumStart + 10)).toEqual({ zone: 'strum' });
+    expect(neck.strumEnd).toBeLessThanOrEqual(neck.height);
+  });
 });

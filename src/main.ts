@@ -8,7 +8,7 @@ import { INSTRUMENTS, type InstrumentId, getInstrument, resolveInstrumentId } fr
 import { helmholtz } from './music/notes';
 import { KOLO_E } from './music/songs';
 import { Player } from './player';
-import { Renderer } from './view/renderer';
+import { Renderer, type ViewOptions } from './view/renderer';
 
 interface Prefs {
   lang: Lang;
@@ -16,6 +16,7 @@ interface Prefs {
   tremolo: boolean;
   showNotes: boolean;
   showKeys: boolean;
+  neckOnly: boolean;
   minusOne: boolean;
   volume: number;
 }
@@ -30,6 +31,7 @@ function loadPrefs(): Prefs {
     tremolo: false,
     showNotes: true,
     showKeys: false,
+    neckOnly: false,
     minusOne: false,
     volume: 0.7,
   };
@@ -69,11 +71,13 @@ const player = new Player(engine, getInstrument(prefs.instrument));
 player.tremolo = prefs.tremolo;
 
 const canvas = $<HTMLCanvasElement>('board');
-const renderer = new Renderer(canvas, player, {
+const viewOptions = (): ViewOptions => ({
   lang: prefs.lang,
   showKeys: prefs.showKeys,
   showNotes: prefs.showNotes,
+  neckOnly: prefs.neckOnly,
 });
+const renderer = new Renderer(canvas, player, viewOptions());
 
 let warmed = false;
 new Controller(canvas, renderer, player, engine, () => {
@@ -243,7 +247,7 @@ function applyLang(): void {
   renderInstruments();
   renderChords();
   renderInfo();
-  renderer.setOptions({ lang: prefs.lang, showKeys: prefs.showKeys, showNotes: prefs.showNotes });
+  renderer.setOptions(viewOptions());
 }
 
 function selectInstrument(id: InstrumentId): void {
@@ -266,7 +270,7 @@ player.onChange(() => {
   }
 });
 
-const bindToggle = (id: string, key: 'tremolo' | 'showNotes' | 'showKeys' | 'minusOne'): void => {
+const bindToggle = (id: string, key: 'tremolo' | 'showNotes' | 'showKeys' | 'neckOnly' | 'minusOne'): void => {
   const input = $<HTMLInputElement>(id);
   input.checked = prefs[key];
   input.addEventListener('change', () => {
@@ -274,12 +278,14 @@ const bindToggle = (id: string, key: 'tremolo' | 'showNotes' | 'showKeys' | 'min
     savePrefs(prefs);
     if (key === 'tremolo') player.setTremolo(input.checked);
     if (key === 'minusOne') band.setMuted(mutedSet());
-    renderer.setOptions({ lang: prefs.lang, showKeys: prefs.showKeys, showNotes: prefs.showNotes });
+    if (key === 'neckOnly') animateSwap();
+    renderer.setOptions(viewOptions());
   });
 };
 bindToggle('tremolo', 'tremolo');
 bindToggle('notes', 'showNotes');
 bindToggle('keys', 'showKeys');
+bindToggle('neck', 'neckOnly');
 bindToggle('minus', 'minusOne');
 
 const volume = $<HTMLInputElement>('volume');

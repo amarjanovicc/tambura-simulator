@@ -28,6 +28,16 @@ export interface Geometry {
   bodyStart: number;
   /** Along position where the fingerboard ends, a little way into the strumming area. */
   boardEnd: number;
+  /** Along position of the tail of the body: past the edge of the canvas in neck view. */
+  bodyEnd: number;
+}
+
+export interface LayoutOptions {
+  /**
+   * Neck view: the neck fills the screen and the body is cut off by the edge, as in a
+   * close-up photo. Wider strings and bigger frets, for small screens.
+   */
+  neckOnly?: boolean;
 }
 
 export type Hit = { zone: 'neck'; course: number; fret: number } | { zone: 'strum' } | null;
@@ -36,8 +46,17 @@ export type Hit = { zone: 'neck'; course: number; fret: number } | { zone: 'stru
 export const MIN_FRETS = 5;
 /** Average fret cell length (px) we aim for, so a fingertip can hit it. */
 const MIN_CELL = 40;
+/** In neck view the frets get more room. */
+const MIN_CELL_NECK = 50;
 
-export function computeGeometry(width: number, height: number, courses: number, maxFrets: number): Geometry {
+export function computeGeometry(
+  width: number,
+  height: number,
+  courses: number,
+  maxFrets: number,
+  options: LayoutOptions = {},
+): Geometry {
+  const neckOnly = options.neckOnly ?? false;
   const orientation: Orientation = width > height ? 'h' : 'v';
   const L = orientation === 'h' ? width : height;
   const W = orientation === 'h' ? height : width;
@@ -45,13 +64,13 @@ export function computeGeometry(width: number, height: number, courses: number, 
 
   const headStart = pad;
   const nut = headStart + clamp(L * 0.075, 40, 84);
-  const strumLen = clamp(L * 0.3, 110, 380);
+  // Neck view keeps a shorter strumming area at the start of the body.
+  const strumLen = neckOnly ? clamp(L * 0.2, 90, 240) : clamp(L * 0.3, 110, 380);
   const strumEnd = L - pad;
   const strumStart = strumEnd - strumLen;
-  // Room behind the bridge for the tail of the body and the string pins.
-  const bridge = strumEnd - strumLen * 0.22;
   // Short screens show fewer frets rather than frets too small to touch.
-  const fretCount = clamp(Math.floor((strumStart - nut) / MIN_CELL), Math.min(MIN_FRETS, maxFrets), maxFrets);
+  const minCell = neckOnly ? MIN_CELL_NECK : MIN_CELL;
+  const fretCount = clamp(Math.floor((strumStart - nut) / minCell), Math.min(MIN_FRETS, maxFrets), maxFrets);
 
   // Real fret spacing shrinks towards the body; blend with even spacing so high frets
   // stay big enough for a fingertip.
@@ -67,13 +86,23 @@ export function computeGeometry(width: number, height: number, courses: number, 
   // shows clearly wider than it, as on a real tambura.
   // On a phone that means about 48 px per string, still above the 44 px touch minimum.
   // Bigger screens get a bigger instrument: up to 84 px per string.
+  // Neck view: as wide as the screen allows, since the body no longer has to fit.
+  const fit = ((W - pad * 2) / courses) * 0.84;
   const maxSpacing = clamp(W * 0.095, 56, 84);
-  const spacing = Math.min(maxSpacing, ((W - pad * 2) / courses) * 0.84, Math.max(46, (W * 0.52) / courses));
+  const spacing = neckOnly ? Math.min(84, fit) : Math.min(maxSpacing, fit, Math.max(46, (W * 0.52) / courses));
   const neckWidth = spacing * courses;
   const neckMin = (W - neckWidth) / 2;
   const strings = Array.from({ length: courses }, (_, i) => neckMin + spacing * (i + 0.5));
-  const bodyWidth = Math.min(W - 10, neckWidth * 2.6);
-  const bodyStart = Math.max(nut + (strumStart - nut) * 0.45, strumStart - strumLen * 0.85);
+
+  // The body. In neck view it is drawn at its full size and runs off the canvas, so only
+  // the shoulders where it meets the neck show.
+  const bodyWidth = neckOnly ? neckWidth * 2.6 : Math.min(W - 10, neckWidth * 2.6);
+  const bodyStart = neckOnly
+    ? strumStart - strumLen * 0.5
+    : Math.max(nut + (strumStart - nut) * 0.45, strumStart - strumLen * 0.85);
+  const bodyEnd = neckOnly ? bodyStart + bodyWidth * 1.35 : strumEnd;
+  // Room behind the bridge for the tail of the body and the string pins.
+  const bridge = neckOnly ? bodyStart + (bodyEnd - bodyStart) * 0.82 : strumEnd - strumLen * 0.22;
 
   return {
     width,
@@ -92,7 +121,8 @@ export function computeGeometry(width: number, height: number, courses: number, 
     bodyMin: (W - bodyWidth) / 2,
     bodyMax: (W + bodyWidth) / 2,
     bodyStart,
-    boardEnd: strumStart + strumLen * 0.13,
+    boardEnd: strumStart + strumLen * (neckOnly ? 0.35 : 0.13),
+    bodyEnd,
   };
 }
 

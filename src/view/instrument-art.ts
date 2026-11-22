@@ -120,7 +120,7 @@ export interface BodyFrame {
 export function bodyFrame(g: Geometry): BodyFrame {
   return {
     start: g.bodyStart,
-    end: g.strumEnd,
+    end: g.bodyEnd,
     mid: (g.neckMin + g.neckMax) / 2,
     half: (g.bodyMax - g.bodyMin) / 2,
     neckHalf: (g.neckMax - g.neckMin) / 2,
@@ -175,7 +175,7 @@ export function bodyPath(g: Geometry, inst: InstrumentDef): Path2D {
 
 /** Along position where the strings are fastened, and how far apart they are there. */
 export function tailAnchor(g: Geometry, inst: InstrumentDef): { along: number; spread: number } {
-  return { along: g.bridge + (g.strumEnd - g.bridge) * 0.42, spread: ART[inst.id].tailSpread };
+  return { along: g.bridge + (g.bodyEnd - g.bridge) * 0.42, spread: ART[inst.id].tailSpread };
 }
 
 /** Deterministic random numbers, so the wood grain doesn't change between redraws. */
@@ -523,7 +523,7 @@ function paintTailpiece(ctx: CanvasRenderingContext2D, g: Geometry, inst: Instru
   const { along } = tailAnchor(g, inst);
   const pins = f.neckHalf * art.tailSpread;
   const a0 = along - 6;
-  const a1 = g.strumEnd - Math.max(6, (g.strumEnd - g.bridge) * 0.12);
+  const a1 = g.bodyEnd - Math.max(6, (g.bodyEnd - g.bridge) * 0.12);
 
   if (art.tailpiece === 'cover') {
     // A dark triangular cover over the string ends, with a cream border.
