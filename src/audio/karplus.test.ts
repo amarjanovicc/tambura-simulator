@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { INSTRUMENTS, getInstrument, stringPhysics } from '../music/instruments';
 import { midiToFreq } from '../music/notes';
-import { pluckOptions } from './engine';
+import { makeBodyImpulse, pluckOptions } from './engine';
 import { renderPluck } from './karplus';
 
 const SR = 48000;
@@ -34,6 +34,42 @@ function estimatePitch(x: Float32Array, sr: number, expected: number): number {
 }
 
 const cents = (f: number, ref: number): number => 1200 * Math.log2(f / ref);
+
+/** Enough of a BaseAudioContext for makeBodyImpulse. */
+function fakeContext(): BaseAudioContext {
+  const createBuffer = (channels: number, length: number, sampleRate: number): AudioBuffer => {
+    const data = Array.from({ length: channels }, () => new Float32Array(length));
+    return { length, sampleRate, numberOfChannels: channels, getChannelData: (c: number) => data[c]! } as unknown as AudioBuffer;
+  };
+  // A stand-in for the browser object: only the members makeBodyImpulse reads.
+  return { sampleRate: SR, createBuffer } as unknown as BaseAudioContext;
+}
+
+function convolve(x: Float32Array, h: Float32Array): Float32Array {
+  const y = new Float32Array(x.length);
+  for (let n = 0; n < x.length; n++) {
+    const xn = x[n] ?? 0;
+    if (xn === 0) continue;
+    const end = Math.min(h.length, x.length - n);
+    for (let k = 0; k < end; k++) y[n + k]! += xn * (h[k] ?? 0);
+  }
+  return y;
+}
+
+/** Level in dB of the partial at `f`, over 30–200 ms (Hann window). */
+function harmonicDb(x: Float32Array, f: number): number {
+  const a = Math.floor(0.03 * SR);
+  const b = Math.floor(0.2 * SR);
+  let re = 0;
+  let im = 0;
+  for (let n = a; n < b; n++) {
+    const w = 0.5 - 0.5 * Math.cos((2 * Math.PI * (n - a)) / (b - a));
+    const ph = (2 * Math.PI * f * n) / SR;
+    re += (x[n] ?? 0) * w * Math.cos(ph);
+    im += (x[n] ?? 0) * w * Math.sin(ph);
+  }
+  return 20 * Math.log10(Math.hypot(re, im) + 1e-12);
+}
 
 describe('renderPluck', () => {
   for (const inst of INSTRUMENTS) {
@@ -101,6 +137,48 @@ describe('renderPluck', () => {
         expect(p.B, `${inst.id} ${c.midi}`).toBeLessThan(1e-3);
       }
     }
+  });
+
+  it('gives every stroke the same timbre', () => {
+    // A noise-burst pluck made each note's harmonics random (±10 dB from note to note)
+    // and the fundamental weak; the plectrum model must not. Strokes may differ a little,
+    // on purpose: each one picks the string at a slightly different point.
+    for (const inst of INSTRUMENTS) {
+      const course = inst.courses.length - 1;
+      const midi = inst.courses[course]!.midi;
+      const f0 = midiToFreq(midi);
+      const { B } = stringPhysics(inst, inst.courses[course]!, 0, f0);
+      const levels = [0, 1, 2, 3].map((variant) => {
+        const x = renderPluck(pluckOptions(inst, course, midi, variant, SR, 0.5));
+        return [1, 2, 3, 4].map((k) => harmonicDb(x, k * f0 * Math.sqrt(1 + B * k * k)));
+      });
+      // The berde carries the bass: its fundamental leads.
+      if (inst.id === 'berde') {
+        for (const row of levels) expect(Math.max(...row.slice(1))).toBeLessThanOrEqual(row[0]!);
+      }
+      for (let k = 0; k < 4; k++) {
+        const column = levels.map((row) => row[k]!);
+        expect(Math.max(...column) - Math.min(...column), `${inst.id} harmonic ${k + 1}`).toBeLessThan(5);
+      }
+    }
+  });
+
+  it("matches Mandić's strongest partials of the prim's open strings, through the body", () => {
+    // Anechoic measurements of Srijem prims: e² and h¹ peak at H2, fis¹ at H3, cis¹ at H4.
+    const inst = getInstrument('prim');
+    const ir = makeBodyImpulse(fakeContext(), inst.tone.body).getChannelData(0);
+    const expected = [4, 3, 2, 2];
+    inst.courses.forEach((course, index) => {
+      const f0 = midiToFreq(course.midi);
+      const sums = new Array<number>(6).fill(0);
+      for (const variant of [0, 1, 2, 3]) {
+        const dry = renderPluck(pluckOptions(inst, index, course.midi, variant, SR, 0.3));
+        const wet = convolve(dry.subarray(0, Math.floor(0.2 * SR)), ir);
+        for (let k = 1; k <= 6; k++) sums[k - 1]! += harmonicDb(wet, k * f0);
+      }
+      const strongest = sums.indexOf(Math.max(...sums)) + 1;
+      expect(strongest, `prim course ${index}`).toBe(expected[index]);
+    });
   });
 
   it('decays and never clips', () => {

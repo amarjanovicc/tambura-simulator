@@ -32,6 +32,11 @@ export interface ToneParams {
   pickPosition: number;
   /** Level of the short plectrum "click" on top of the string. */
   click: number;
+  /**
+   * Above this frequency the plectrum's strike outweighs its pluck, so the harmonics stop
+   * falling off. Low for a hard pick in fast tremolo (the prim), high for a soft one.
+   */
+  strikeHz: number;
   /** Cents between the two strings of a doubled course. */
   courseDetune: number;
   /**
@@ -102,8 +107,9 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
       loopDamping: 0.24,
       brightness: 0.78,
       // Plucked over the holes rather than at the bridge: rounder, less metallic.
-      pickPosition: 0.17,
+      pickPosition: 0.13,
       click: 0.22,
+      strikeHz: 250,
       courseDetune: 4,
       promptShare: 0.25,
       sympathetic: 0.1,
@@ -135,8 +141,9 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
       t60High: 2.8,
       loopDamping: 0.27,
       brightness: 0.75,
-      pickPosition: 0.17,
+      pickPosition: 0.15,
       click: 0.2,
+      strikeHz: 700,
       courseDetune: 3.5,
       promptShare: 0.25,
       sympathetic: 0.1,
@@ -170,6 +177,7 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
       brightness: 0.8,
       pickPosition: 0.16,
       click: 0.4,
+      strikeHz: 1000,
       courseDetune: 3,
       promptShare: 0.4,
       // Off-beat strokes are damped right away, so nothing is left to ring along.
@@ -204,6 +212,7 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
       brightness: 0.45,
       pickPosition: 0.18,
       click: 0.15,
+      strikeHz: 2000,
       courseDetune: 0,
       promptShare: 0.35,
       sympathetic: 0.05,
@@ -214,7 +223,7 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
         [450, 10, 2],
       ],
       highpass: 30,
-      gain: 1.5,
+      gain: 0.9,
     },
   },
 ];

@@ -1,8 +1,9 @@
 /**
  * Plucked steel string: extended Karplus-Strong (Jaffe & Smith), rendered offline.
  *
- * - Excitation: a noise burst, low-passed by plectrum hardness and comb-filtered by the
- *   plucking point, fed into a delay loop of one period.
+ * - Excitation: the bridge force of a plectrum stroke (a pluck at the picking point plus
+ *   the strike of the plectrum passing), rounded by the plectrum's width, with a little
+ *   noise, fed into a delay loop of one period.
  * - Loop: a one-zero low-pass (string losses, brighter for steel), a chain of allpass
  *   filters for stiffness (upper partials run slightly sharp, the metallic edge of steel
  *   strings) and a first-order allpass for the fractional period. The phase delay of every
@@ -23,6 +24,8 @@ export interface PluckOptions {
   brightness: number;
   pickPosition: number;
   click: number;
+  /** Above this frequency the strike of the plectrum outweighs the pluck (default 2 kHz). */
+  strikeHz?: number;
   /**
    * Inharmonicity coefficient B of a stiff string: partial k sounds at
    * k·f0·sqrt(1 + B·k²). Steel strings are around 1e-4 to 5e-4.
@@ -40,15 +43,18 @@ const FIT_PARTIAL = 6;
 const PROMPT_DECAY_RATIO = 0.22;
 /** Detuning of the second polarisation, in cents. */
 const POLARISATION_CENTS = 0.6;
+/** Share of noise in the pluck, so repeated notes are never sample-identical. */
+const NOISE_SHARE = 0.08;
 
 export function renderPluck(o: PluckOptions): Float32Array<ArrayBuffer> {
   const sr = o.sampleRate;
   const rand = mulberry32(o.seed);
-  const seconds = Math.min(o.maxSeconds ?? 5, o.t60 * 1.05);
+  // Up to about -45 dB: quieter than that the tail is lost under the room anyway.
+  const seconds = Math.min(o.maxSeconds ?? 5, o.t60 * 0.8);
   const len = Math.max(64, Math.floor(seconds * sr));
 
   const loop = makeLoop(o, o.freq);
-  const excitation = makeExcitation(loop.N, o.brightness, o.pickPosition, rand);
+  const excitation = makeExcitation(loop.N, sr, o.brightness, o.pickPosition, o.strikeHz ?? 2000, rand);
   const out = new Float32Array(len);
   runLoop(out, excitation, loop, o.t60, o.freq, 1 - (o.promptShare ?? 0));
 
@@ -64,7 +70,7 @@ export function renderPluck(o: PluckOptions): Float32Array<ArrayBuffer> {
 
   addClick(out, sr, o.click, rand);
   normalize(out, sr);
-  fadeOut(out, sr, 0.06);
+  fadeOut(out, sr, 0.3);
   return out;
 }
 
@@ -168,26 +174,49 @@ function runLoop(out: Float32Array, excitation: Float32Array, loop: Loop, t60: n
   if (level !== 1) for (let n = 0; n < out.length; n++) out[n] = (out[n] ?? 0) * level;
 }
 
-function makeExcitation(N: number, brightness: number, pickPosition: number, rand: () => number): Float32Array {
-  const noise = new Float32Array(N);
-  // Plectrum hardness: one-pole low-pass on white noise.
-  const a = 0.04 + 0.96 * clamp(brightness, 0, 1) ** 2;
+/**
+ * One period of the force a plectrum pluck puts on the bridge.
+ *
+ * A string pulled aside at fraction p of its length and let go sends a rectangular wave
+ * round the loop (duty cycle p), whose harmonics fall as sin(kπp)/k: a strong
+ * fundamental and a natural roll-off. A plain noise burst, as in basic Karplus-Strong,
+ * gives every note a random, lumpy spectrum (±10 dB per harmonic from note to note) and a
+ * weak fundamental. The plectrum is not a point: its width and the moment it takes to
+ * slide off the string round the corners of the wave (a low-pass set by `brightness`).
+ * A little filtered noise on top keeps notes from being identical.
+ */
+function makeExcitation(
+  N: number,
+  sr: number,
+  brightness: number,
+  pickPosition: number,
+  strikeHz: number,
+  rand: () => number,
+): Float32Array {
+  const M = Math.max(1, Math.round(clamp(pickPosition, 0.02, 0.5) * N));
+  const raw = new Float32Array(N);
+  for (let n = 0; n < N; n++) raw[n] = (n < M ? 1 : 0) + NOISE_SHARE * (rand() * 2 - 1);
+  // The plectrum also pushes the string as it passes: a strike, whose harmonics do not
+  // fall with k. Above strikeHz it outweighs the pluck, which keeps the steel edge.
+  const strike = sr / (2 * Math.PI * strikeHz);
+  raw[0] = (raw[0] ?? 0) + strike;
+  raw[M % N] = (raw[M % N] ?? 0) - strike;
+
+  // Plectrum smoothing: a one-pole low-pass, run twice round the period so it has no
+  // start-up transient.
+  const b = clamp(brightness, 0, 1);
+  const cutoff = 1200 + 8000 * b * b;
+  const a = 1 - Math.exp((-2 * Math.PI * cutoff) / sr);
+  const exc = new Float32Array(N);
   let y = 0;
-  // Run twice around the buffer so the filter has no start-up transient.
   for (let pass = 0; pass < 2; pass++) {
     for (let n = 0; n < N; n++) {
-      y += a * (rand() * 2 - 1 - y);
-      if (pass === 1) noise[n] = y;
+      y += a * ((raw[n] ?? 0) - y);
+      if (pass === 1) exc[n] = y;
     }
   }
-  // Plucking point: a comb filter removes harmonics with a node at that point.
-  const M = Math.max(1, Math.round(clamp(pickPosition, 0.02, 0.5) * N));
-  const exc = new Float32Array(N);
   let mean = 0;
-  for (let n = 0; n < N; n++) {
-    exc[n] = (noise[n] ?? 0) - (noise[(n - M + N) % N] ?? 0);
-    mean += exc[n] ?? 0;
-  }
+  for (let n = 0; n < N; n++) mean += exc[n] ?? 0;
   mean /= N;
   let peak = 1e-9;
   for (let n = 0; n < N; n++) {

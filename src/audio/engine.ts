@@ -41,7 +41,15 @@ const SYMPATHY: ReadonlyMap<number, number> = new Map([
   [7, 0.3],
 ]);
 
-const MAX_CACHE = 200;
+/** Rendered notes are kept up to this many samples (about 96 MB of float audio). */
+const MAX_CACHED_SAMPLES = 24_000_000;
+/**
+ * Alternate strokes (down, up) use slightly different renders, so a repeated note or a
+ * tremolo never plays the same samples twice in a row (the "machine-gun" effect).
+ */
+const STROKES = 2;
+/** Pick position and plectrum differences between the strings and strokes of a course. */
+const VARIANT_PICK = [0, 0.015, -0.012, 0.008] as const;
 
 /**
  * Web Audio graph:
@@ -60,7 +68,9 @@ export class AudioEngine {
   private instrument: InstrumentDef | null = null;
   private readonly bodies = new Map<InstrumentId, AudioNode>();
   private readonly cache = new Map<string, AudioBuffer>();
+  private cachedSamples = 0;
   private readonly voices = new Map<string, Voice>();
+  private readonly strokes = new Map<string, number>();
   private volumeLevel = 0.7;
 
   get running(): boolean {
@@ -87,23 +97,25 @@ export class AudioEngine {
   /** Renders the given notes ahead of time in idle slices, so the first pluck is instant. */
   prewarm(notes: Iterable<{ course: number; midi: number }>, inst = this.instrument): void {
     if (!this.ctx || !inst) return;
-    const queue = [...notes];
+    // Every down-stroke first (the first note played needs it), then the up-strokes.
+    const list = [...notes];
+    const queue = Array.from({ length: STROKES }, (_, stroke) => list.map((n) => ({ ...n, stroke }))).flat();
     const step = (): void => {
       const t0 = performance.now();
       while (queue.length && performance.now() - t0 < 8) {
         const n = queue.shift()!;
-        this.render(inst, n.course, n.midi);
+        this.render(inst, n.course, n.midi, n.stroke);
       }
       if (queue.length) schedule(step);
     };
     schedule(step);
   }
 
-  /** Renders one note (both strings of a doubled course) right now. */
-  render(inst: InstrumentDef, course: number, midi: number): void {
+  /** Renders one note (both strings of a doubled course) for one stroke right now. */
+  render(inst: InstrumentDef, course: number, midi: number, stroke = 0): void {
     if (!this.ctx) return;
-    this.buffer(inst, course, midi, 0);
-    if (inst.courses[course]?.doubled) this.buffer(inst, course, midi, 1);
+    this.buffer(inst, course, midi, stroke * 2);
+    if (inst.courses[course]?.doubled) this.buffer(inst, course, midi, stroke * 2 + 1);
   }
 
   /**
@@ -118,15 +130,27 @@ export class AudioEngine {
     const when = ctx.currentTime + Math.max(0, req.delay ?? 0);
     const key = `${req.group ?? 'user'}:${inst.id}:${req.course}`;
     this.choke(key, when);
+    let stroke = this.strokes.get(key) ?? 0;
+    this.strokes.set(key, (stroke + 1) % STROKES);
+    // Never render on the hot path for variety's sake: an up-stroke not rendered yet plays
+    // the down-stroke and is rendered when the browser is idle.
+    if (stroke > 0 && !this.cache.has(`${inst.id}:${req.course}:${req.midi}:${stroke * 2}`)) {
+      const s = stroke;
+      schedule(() => this.render(inst, req.course, req.midi, s));
+      stroke = 0;
+    }
 
+    // No two strokes are exactly alike: a little random level and colour (about ±0.5 dB
+    // and ±6 % on the filter), as from a human hand.
     const v = Math.min(1, Math.max(0.05, req.velocity));
+    const human = 1 + (Math.random() - 0.5) * 0.12;
     const gain = ctx.createGain();
-    gain.gain.value = (0.15 + 0.85 * v * v) * inst.tone.gain * 0.5 * (req.level ?? 1);
+    gain.gain.value = (0.15 + 0.85 * v * v) * inst.tone.gain * 0.5 * (req.level ?? 1) * human;
 
     // Softer plucks are darker: dynamic low-pass relative to the note.
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = Math.min(18000, midiToFreq(req.midi) * (3 + 30 * v * v));
+    lp.frequency.value = Math.min(18000, midiToFreq(req.midi) * (3 + 30 * v * v) * human);
     lp.Q.value = 0.5;
 
     const panner = ctx.createStereoPanner();
@@ -137,7 +161,7 @@ export class AudioEngine {
     const strings = req.doubled ? 2 : 1;
     for (let s = 0; s < strings; s++) {
       const src = ctx.createBufferSource();
-      src.buffer = this.buffer(inst, req.course, req.midi, s);
+      src.buffer = this.buffer(inst, req.course, req.midi, stroke * 2 + s);
       if (s === 1) src.playbackRate.value = 2 ** (inst.tone.courseDetune / 1200);
       src.connect(lp);
       src.start(when + s * (0.002 + Math.random() * 0.004));
@@ -225,7 +249,13 @@ export class AudioEngine {
     const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
     buf.copyToChannel(data, 0);
     this.cache.set(key, buf);
-    if (this.cache.size > MAX_CACHE) this.cache.delete(this.cache.keys().next().value!);
+    this.cachedSamples += buf.length;
+    // Drop the least recently used notes once over budget.
+    for (const [oldKey, old] of this.cache) {
+      if (this.cachedSamples <= MAX_CACHED_SAMPLES || oldKey === key) break;
+      this.cache.delete(oldKey);
+      this.cachedSamples -= old.length;
+    }
     return buf;
   }
 
@@ -270,11 +300,11 @@ export class AudioEngine {
     const warm = ctx.createBiquadFilter();
     warm.type = 'lowshelf';
     warm.frequency.value = 220;
-    warm.gain.value = 3;
+    warm.gain.value = 1.5;
     const soft = ctx.createBiquadFilter();
     soft.type = 'highshelf';
     soft.frequency.value = 4200;
-    soft.gain.value = -5;
+    soft.gain.value = -2.5;
     this.mix.connect(warm).connect(soft);
 
     // Depth: a warm room behind the instrument, arriving a moment after the direct sound.
@@ -328,9 +358,11 @@ export function pluckOptions(
     freq,
     t60: inst.tone.t60Low + (inst.tone.t60High - inst.tone.t60Low) * register,
     loopDamping: Math.min(0.5, inst.tone.loopDamping + (course.wound ? 0.06 : 0)),
-    brightness: inst.tone.brightness,
-    pickPosition: inst.tone.pickPosition + variant * 0.015,
+    pickPosition: inst.tone.pickPosition + (VARIANT_PICK[variant % VARIANT_PICK.length] ?? 0),
+    // An up-stroke meets the string with the other face of the plectrum: a touch darker.
+    brightness: inst.tone.brightness * (variant >= 2 ? 0.94 : 1),
     click: inst.tone.click,
+    strikeHz: inst.tone.strikeHz,
     inharmonicity: B,
     promptShare: inst.tone.promptShare,
     seed: midi * 31 + courseIndex * 131 + variant * 7919 + 1,
@@ -341,6 +373,10 @@ export function pluckOptions(
  * Body impulse response: the direct sound plus one decaying sine per mode. A mode with
  * quality factor Q at frequency f rings with time constant Q / (pi f); its amplitude is
  * set so the response at f is boosted by the given number of dB.
+ *
+ * Stereo: a soundboard radiates differently in each direction, so the right channel's
+ * modes sit about 1.5 % apart and a dB off from the left. The two ears hear slightly
+ * different instruments, which gives width and depth instead of a point source.
  */
 export function makeBodyImpulse(
   ctx: BaseAudioContext,
@@ -349,14 +385,19 @@ export function makeBodyImpulse(
   const sr = ctx.sampleRate;
   const longest = Math.max(0.02, ...modes.map(([f, q]) => (7 * q) / (Math.PI * f)));
   const len = Math.floor(Math.min(0.5, longest) * sr);
-  const buf = ctx.createBuffer(1, len, sr);
-  const data = buf.getChannelData(0);
-  data[0] = 1;
-  for (const [f, q, db] of modes) {
-    const tau = q / (Math.PI * f);
-    const amp = ((10 ** (db / 20) - 1) * 2) / (tau * sr);
-    const w = (2 * Math.PI * f) / sr;
-    for (let n = 1; n < len; n++) data[n] = (data[n] ?? 0) + amp * Math.exp(-n / (tau * sr)) * Math.sin(w * n);
+  const buf = ctx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    data[0] = 1;
+    modes.forEach(([f0, q, db0], i) => {
+      const side = ch === 0 ? 0 : i % 2 === 0 ? 1 : -1;
+      const f = f0 * (1 + 0.015 * side);
+      const db = db0 - 1 * side;
+      const tau = q / (Math.PI * f);
+      const amp = ((10 ** (db / 20) - 1) * 2) / (tau * sr);
+      const w = (2 * Math.PI * f) / sr;
+      for (let n = 1; n < len; n++) data[n] = (data[n] ?? 0) + amp * Math.exp(-n / (tau * sr)) * Math.sin(w * n);
+    });
   }
   return buf;
 }

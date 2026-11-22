@@ -83,8 +83,13 @@ Berde plays the root note only. After you change a tuning, the shapes follow aut
 There are no recordings. The model follows the physics of a plucked steel string, with values from the
 literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplus-Strong string:
 
-- **Excitation:** a noise burst, low-passed by plectrum hardness and comb-filtered by the plucking point
-  (close to the bridge, about 1/9 of the string).
+- **Excitation:** the force a plectrum stroke puts on the bridge. A pluck at the picking point (prim
+  0.13 of the string from the bridge) sends a rectangular wave round the loop, with harmonics falling
+  as sin(kπp)/k. The plectrum also strikes the string as it passes, which keeps the harmonics up above
+  a per-instrument frequency (`strikeHz`: 250 Hz for the prim's hard pick in tremolo, 2 kHz for the
+  berde's soft one). The plectrum's width rounds the wave, and a little noise keeps strokes apart. A
+  plain noise burst, as in basic Karplus-Strong, gave every note a random spectrum (±10 dB per harmonic
+  from note to note) and a weak fundamental.
 - **Losses:** a one-zero low-pass in the delay loop, which damps a steel string.
 - **Strings:** every string has its real gauge, and the lower strings are wound, as in Dinamik string sets
   (for example, the prim has e² 0.23 and h¹ 0.30 plain, and fis¹ 0.50 and cis¹ 0.60 wound). Tension and
@@ -102,12 +107,14 @@ literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplu
 
 - **Doubled courses:** the two strings are slightly detuned and a few ms apart, which gives the
   tamburica shimmer.
+- **Down- and up-strokes:** alternate strokes use different renders (picking point, plectrum face),
+  plus a little random level and colour, so a tremolo never repeats the same samples.
 - **Dynamics:** a velocity-dependent low-pass, so soft strums are darker.
-- **Body:** a convolution with each instrument's body response, built from its air, plate and formant
-  modes. Mandić measured four Srijem prims in an anechoic room (diploma thesis, PMF Novi Sad). On the prim
+- **Body:** a stereo convolution with each instrument's body response, built from its air, plate and
+  formant modes (the right channel's modes sit 1.5 % apart, for width). Mandić measured four Srijem prims in an anechoic room (diploma thesis, PMF Novi Sad). On the prim
   the fundamental is never the loudest partial: a body formant around 1.0–1.3 kHz is, with resonances near
   365 and 745 Hz. The model reproduces his result for each open string: e² and h¹ strongest at H2, fis¹ at H3,
-  cis¹ at H4. The larger bodies are scaled from the prim by size.
+  cis¹ at H4 (a test checks this). The larger bodies are scaled from the prim by size.
 - **Sympathetic strings:** open strings that share partials with the played note ring along softly
   (not on the kontra, whose strokes are damped).
 - **Picks:** a hard horn pick for the prim, bas-prim and kontra (the kontra's is large and thick, so it
