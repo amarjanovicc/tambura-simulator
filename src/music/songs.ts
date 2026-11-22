@@ -123,8 +123,18 @@ export const NE_DIRAJTE_MI_RAVNICU: BackingTrack = {
   ending: 'D',
 };
 
+/** Just the refrain of "Ne dirajte mi ravnicu", four times, for practising that part. */
+export const RAVNICA_REFREN: BackingTrack = {
+  id: 'ne-dirajte-mi-ravnicu-refren',
+  title: { hr: 'Ne dirajte mi ravnicu – refren', en: 'Ne dirajte mi ravnicu – refrain' },
+  bpm: 76,
+  meter: 4,
+  bars: [['G', 'A7'], ['D'], ...RAVNICA_CHORUS, ...RAVNICA_CHORUS, ...RAVNICA_CHORUS, ...RAVNICA_CHORUS],
+  ending: 'D',
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU];
+export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];

@@ -53,7 +53,8 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
   G, from a published chord sheet); the bar lengths are estimated.
 - **Ne dirajte mi ravnicu (pratnja):** the same kind of backing, in D at 76 bpm, from a published chord
   sheet of Miroslav Škoro's 1992 song (D, Em, G, A7, and Fis, Hm, B in the refrain). Again only the
-  chords are used; bar lengths and tempo are estimated.
+  chords are used; bar lengths and tempo are estimated. A second entry plays only its refrain, four
+  times, for practising that part.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.
