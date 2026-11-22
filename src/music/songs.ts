@@ -376,9 +376,42 @@ export const IGRALE_SE_DELIJE: Song = {
   ending: { chord: 'A', note: 76, beats: 1.5 },
 };
 
+const VARAZDINEC_A: readonly SongBar[] = [
+  { chord: 'D', melody: [[74, 2], [78, 2]] },
+  { chord: 'D', melody: [[81, 1], [81, 1], [81, 1], [78, 1]] },
+  { chord: 'D', melody: [[81, 1], [81, 1], [81, 1], [78, 1]] },
+  { chord: 'A7', melody: [[79, 1.5], [78, 0.5], [79, 1], [81, 1]] },
+  { chord: 'D', melody: [[78, 2, true], [0, 2]] },
+];
+const VARAZDINEC_B: readonly SongBar[] = [
+  { chord: 'D', melody: [[81, 1], [81, 1], [81, 1], [78, 1]] },
+  { chord: 'G', melody: [[83, 1], [83, 1], [83, 2, true]] },
+  { chord: 'A', melody: [[79, 1], [79, 1], [79, 1], [76, 1]] },
+  { chord: 'D', melody: [[81, 1], [81, 1], [81, 2, true]] },
+];
+
+/**
+ * "Ja sem Varaždinec", a traditional Kajkavian popevka (narodna), in D major (2/4). The
+ * melody is the sung line of Mladen Žvorc's tamburica arrangement (MuseScore), an octave
+ * up where the prim plays it; his instrumental intro and ornaments are not used. The
+ * refrain twice, the verse ("imel jesem…"), the refrain twice more; two verses.
+ */
+export const JA_SEM_VARAZDINEC: Song = {
+  id: 'ja-sem-varazdinec',
+  title: { hr: 'Ja sem Varaždinec', en: 'Ja sem Varaždinec' },
+  bpm: 120,
+  tonic: 2,
+  introBars: 2,
+  introChord: 'D',
+  repeats: 2,
+  bars: [...VARAZDINEC_A, ...VARAZDINEC_A, ...VARAZDINEC_B, ...VARAZDINEC_A, ...VARAZDINEC_A],
+  ending: { chord: 'D', note: 74, beats: 1.5 },
+};
+
 /** The first song is the one selected by default. */
 export const SONGS: readonly Song[] = [
   CIRO_KOLO,
+  JA_SEM_VARAZDINEC,
   SELJANCICA,
   IGRALE_SE_DELIJE,
   KOLO_KALENDARA,
