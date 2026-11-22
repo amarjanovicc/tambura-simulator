@@ -1,4 +1,4 @@
-import type { InstrumentDef, InstrumentId } from '../music/instruments';
+import { type InstrumentDef, type InstrumentId, stringPhysics } from '../music/instruments';
 import { midiToFreq } from '../music/notes';
 import { renderPluck } from './karplus';
 
@@ -21,7 +21,25 @@ export interface PluckRequest {
   group?: string;
   /** Damp the note after this many seconds (short "ćuć" strokes). */
   staccato?: number;
+  /** Extra level factor (used for sympathetic strings). */
+  level?: number;
 }
+
+/**
+ * Open strings ring along when a played note shares partials with them: semitones from
+ * the open string to the played note -> relative strength.
+ */
+const SYMPATHY: ReadonlyMap<number, number> = new Map([
+  [0, 1],
+  [-12, 0.8],
+  [12, 0.6],
+  [-19, 0.5],
+  [19, 0.4],
+  [-24, 0.4],
+  [24, 0.3],
+  [-7, 0.3],
+  [7, 0.3],
+]);
 
 const MAX_CACHE = 200;
 
@@ -67,26 +85,25 @@ export class AudioEngine {
   }
 
   /** Renders the given notes ahead of time in idle slices, so the first pluck is instant. */
-  prewarm(midis: Iterable<number>, doubled: Set<number>, inst = this.instrument): void {
+  prewarm(notes: Iterable<{ course: number; midi: number }>, inst = this.instrument): void {
     if (!this.ctx || !inst) return;
-    const queue = [...new Set(midis)];
+    const queue = [...notes];
     const step = (): void => {
       const t0 = performance.now();
-      while (queue.length && performance.now() - t0 < 6) {
-        const midi = queue.shift()!;
-        this.buffer(inst, midi, 0);
-        if (doubled.has(midi)) this.buffer(inst, midi, 1);
+      while (queue.length && performance.now() - t0 < 8) {
+        const n = queue.shift()!;
+        this.render(inst, n.course, n.midi);
       }
       if (queue.length) schedule(step);
     };
     schedule(step);
   }
 
-  /** Renders one note right now (used before a song starts). */
-  render(inst: InstrumentDef, midi: number, doubled: boolean): void {
+  /** Renders one note (both strings of a doubled course) right now. */
+  render(inst: InstrumentDef, course: number, midi: number): void {
     if (!this.ctx) return;
-    this.buffer(inst, midi, 0);
-    if (doubled) this.buffer(inst, midi, 1);
+    this.buffer(inst, course, midi, 0);
+    if (inst.courses[course]?.doubled) this.buffer(inst, course, midi, 1);
   }
 
   /**
@@ -104,7 +121,7 @@ export class AudioEngine {
 
     const v = Math.min(1, Math.max(0.05, req.velocity));
     const gain = ctx.createGain();
-    gain.gain.value = (0.15 + 0.85 * v * v) * inst.tone.gain * 0.5;
+    gain.gain.value = (0.15 + 0.85 * v * v) * inst.tone.gain * 0.5 * (req.level ?? 1);
 
     // Softer plucks are darker: dynamic low-pass relative to the note.
     const lp = ctx.createBiquadFilter();
@@ -120,7 +137,7 @@ export class AudioEngine {
     const strings = req.doubled ? 2 : 1;
     for (let s = 0; s < strings; s++) {
       const src = ctx.createBufferSource();
-      src.buffer = this.buffer(inst, req.midi, s);
+      src.buffer = this.buffer(inst, req.course, req.midi, s);
       if (s === 1) src.playbackRate.value = 2 ** (inst.tone.courseDetune / 1200);
       src.connect(lp);
       src.start(when + s * (0.002 + Math.random() * 0.004));
@@ -133,6 +150,32 @@ export class AudioEngine {
     };
     this.voices.set(key, voice);
     if (req.staccato !== undefined) this.choke(key, when + req.staccato);
+    else if (req.group !== 'symp') this.sympathetic(inst, req, v, when - ctx.currentTime);
+  }
+
+  /**
+   * The open strings that share partials with the played note start to ring softly, a
+   * few ms later: the shimmer around a tamburica note.
+   */
+  private sympathetic(inst: InstrumentDef, req: PluckRequest, velocity: number, delay: number): void {
+    const amount = inst.tone.sympathetic;
+    if (amount <= 0) return;
+    inst.courses.forEach((c, course) => {
+      if (course === req.course) return;
+      const strength = SYMPATHY.get(req.midi - c.midi);
+      if (!strength) return;
+      this.pluck({
+        inst,
+        course,
+        midi: c.midi,
+        velocity: 0.35,
+        doubled: c.doubled,
+        delay: delay + 0.012,
+        pan: req.pan ?? 0,
+        group: 'symp',
+        level: amount * strength * velocity,
+      });
+    });
   }
 
   /** Damps every string of a voice group, or all strings. */
@@ -165,9 +208,9 @@ export class AudioEngine {
     }
   }
 
-  private buffer(inst: InstrumentDef, midi: number, variant: number): AudioBuffer {
+  private buffer(inst: InstrumentDef, courseIndex: number, midi: number, variant: number): AudioBuffer {
     const ctx = this.ctx!;
-    const key = `${inst.id}:${midi}:${variant}`;
+    const key = `${inst.id}:${courseIndex}:${midi}:${variant}`;
     const hit = this.cache.get(key);
     if (hit) {
       // Refresh LRU position.
@@ -178,18 +221,7 @@ export class AudioEngine {
     const lowest = inst.courses[0]!.midi;
     const highest = inst.courses[inst.courses.length - 1]!.midi + inst.visibleFrets;
     const k = Math.min(1, Math.max(0, (midi - lowest) / Math.max(1, highest - lowest)));
-    const data = renderPluck({
-      sampleRate: ctx.sampleRate,
-      freq: midiToFreq(midi),
-      t60: inst.tone.t60Low + (inst.tone.t60High - inst.tone.t60Low) * k,
-      loopDamping: inst.tone.loopDamping,
-      brightness: inst.tone.brightness,
-      pickPosition: inst.tone.pickPosition + variant * 0.015,
-      click: inst.tone.click,
-      inharmonicity: inst.tone.inharmonicity,
-      promptShare: inst.tone.promptShare,
-      seed: midi * 31 + variant * 7919 + 1,
-    });
+    const data = renderPluck(pluckOptions(inst, courseIndex, midi, variant, ctx.sampleRate, k));
     const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
     buf.copyToChannel(data, 0);
     this.cache.set(key, buf);
@@ -255,6 +287,36 @@ export class AudioEngine {
     silent.connect(ctx.destination);
     silent.start();
   }
+}
+
+/**
+ * String-model settings for one note: the instrument's tone, plus the physics of the
+ * string it is played on. Wound strings lose their highs a little faster (the wrap
+ * adds damping) and are less stiff for their weight than plain ones.
+ */
+export function pluckOptions(
+  inst: InstrumentDef,
+  courseIndex: number,
+  midi: number,
+  variant: number,
+  sampleRate: number,
+  register: number,
+): Parameters<typeof renderPluck>[0] {
+  const course = inst.courses[courseIndex] ?? inst.courses[0]!;
+  const freq = midiToFreq(midi);
+  const { B } = stringPhysics(inst, course, Math.max(0, midi - course.midi), freq);
+  return {
+    sampleRate,
+    freq,
+    t60: inst.tone.t60Low + (inst.tone.t60High - inst.tone.t60Low) * register,
+    loopDamping: Math.min(0.5, inst.tone.loopDamping + (course.wound ? 0.06 : 0)),
+    brightness: inst.tone.brightness,
+    pickPosition: inst.tone.pickPosition + variant * 0.015,
+    click: inst.tone.click,
+    inharmonicity: B,
+    promptShare: inst.tone.promptShare,
+    seed: midi * 31 + courseIndex * 131 + variant * 7919 + 1,
+  };
 }
 
 /**

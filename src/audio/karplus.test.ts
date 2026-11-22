@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { INSTRUMENTS } from '../music/instruments';
+import { INSTRUMENTS, getInstrument, stringPhysics } from '../music/instruments';
 import { midiToFreq } from '../music/notes';
+import { pluckOptions } from './engine';
 import { renderPluck } from './karplus';
 
 const SR = 48000;
@@ -36,23 +37,12 @@ const cents = (f: number, ref: number): number => 1200 * Math.log2(f / ref);
 
 describe('renderPluck', () => {
   for (const inst of INSTRUMENTS) {
-    for (const course of inst.courses) {
+    for (const [courseIndex, course] of inst.courses.entries()) {
       for (const fret of [0, 5, inst.visibleFrets]) {
         const midi = course.midi + fret;
         it(`${inst.id} MIDI ${midi} is in tune within 3 cents`, () => {
           const freq = midiToFreq(midi);
-          const buf = renderPluck({
-            sampleRate: SR,
-            freq,
-            t60: inst.tone.t60Low,
-            loopDamping: inst.tone.loopDamping,
-            brightness: inst.tone.brightness,
-            pickPosition: inst.tone.pickPosition,
-            click: inst.tone.click,
-            inharmonicity: inst.tone.inharmonicity,
-            promptShare: inst.tone.promptShare,
-            seed: 1,
-          });
+          const buf = renderPluck(pluckOptions(inst, courseIndex, midi, 0, SR, 0));
           expect(Math.abs(cents(estimatePitch(buf, SR, freq), freq))).toBeLessThan(3);
         });
       }
@@ -92,6 +82,25 @@ describe('renderPluck', () => {
     const expected = 1200 * Math.log2(Math.sqrt(1 + B * 64));
     expect(Math.abs(partialCents(0))).toBeLessThan(2);
     expect(Math.abs(partialCents(B) - expected)).toBeLessThan(4);
+  });
+
+  it('derives string tension and inharmonicity from real gauges', () => {
+    const prim = getInstrument('prim');
+    const e2 = prim.courses[3]!;
+    const { tension, B } = stringPhysics(prim, e2, 0, midiToFreq(e2.midi));
+    expect(tension).toBeGreaterThan(70);
+    expect(tension).toBeLessThan(100);
+    expect(B).toBeGreaterThan(1e-5);
+    expect(B).toBeLessThan(4e-5);
+    // Every string on every instrument lands in a plausible range for steel strings.
+    for (const inst of INSTRUMENTS) {
+      for (const c of inst.courses) {
+        const p = stringPhysics(inst, c, 0, midiToFreq(c.midi));
+        expect(p.tension, `${inst.id} ${c.midi}`).toBeGreaterThan(20);
+        expect(p.tension, `${inst.id} ${c.midi}`).toBeLessThan(450);
+        expect(p.B, `${inst.id} ${c.midi}`).toBeLessThan(1e-3);
+      }
+    }
   });
 
   it('decays and never clips', () => {

@@ -58,20 +58,16 @@ export class Player {
   }
 
   prewarm(): void {
-    const midis: number[] = [];
-    const doubled = new Set<number>();
-    this.inst.courses.forEach((c, i) => {
+    const notes: { course: number; midi: number }[] = [];
+    this.inst.courses.forEach((c, course) => {
       const frets = new Set<number>([0, 1, 2, 3, 4, 5, 7]);
       for (const v of this.voicings.values()) {
-        const f = v[i];
+        const f = v[course];
         if (f !== null && f !== undefined) frets.add(f);
       }
-      for (const f of frets) {
-        midis.push(c.midi + f);
-        if (c.doubled) doubled.add(c.midi + f);
-      }
+      for (const f of frets) notes.push({ course, midi: c.midi + f });
     });
-    this.engine.prewarm(midis, doubled);
+    this.engine.prewarm(notes);
   }
 
   heldFret(course: number): number | null {

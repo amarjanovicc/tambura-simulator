@@ -85,9 +85,12 @@ literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplu
 - **Excitation:** a noise burst, low-passed by plectrum hardness and comb-filtered by the plucking point
   (close to the bridge, about 1/9 of the string).
 - **Losses:** a one-zero low-pass in the delay loop, which damps a steel string.
-- **Stiffness:** allpass dispersion filters make the upper partials run sharp, as on a real stiff string.
-  They are fitted per note to the inharmonicity B = π³·E·d⁴ / (64·T·L²) of typical tamburica gauges and
-  scale lengths (prim e² string ≈ 4e-5). A test checks the partials against the theory.
+- **Strings:** every string has its real gauge, and the lower strings are wound, as in Dinamik string sets
+  (for example, the prim has e² 0.23 and h¹ 0.30 plain, and fis¹ 0.50 and cis¹ 0.60 wound). Tension and
+  inharmonicity B = π³·E·d⁴ / (64·T·L²) come from the gauge, the scale length (prim 39 cm, bas-prim 57.5,
+  kontra 65, berde 108) and the fretted length. This puts the prim's e² string at ~86 N and B ≈ 2e-5.
+  Allpass dispersion filters, fitted per note, place the partials where that B puts them. Wound strings
+  are a little darker.
 - **Tuning:** every filter's exact phase delay is subtracted from the period, so the fundamental of every
   note on every instrument is within 3 cents.
 - **Two polarisations:** the string vibrates in two planes that decay at different rates. A bright
@@ -99,8 +102,15 @@ literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplu
 - **Doubled courses:** the two strings are slightly detuned and a few ms apart, which gives the
   tamburica shimmer.
 - **Dynamics:** a velocity-dependent low-pass, so soft strums are darker.
-- **Body:** a convolution with each instrument's body response, built from its air and plate modes.
-  The prim's ~340/740 Hz modes are measured, and the larger bodies scale them down.
+- **Body:** a convolution with each instrument's body response, built from its air, plate and formant
+  modes. Mandić measured four Srijem prims in an anechoic room (diploma thesis, PMF Novi Sad). On the prim
+  the fundamental is never the loudest partial: a body formant around 1.0–1.3 kHz is, with resonances near
+  365 and 745 Hz. The model reproduces his result for each open string: e² and h¹ strongest at H2, fis¹ at H3,
+  cis¹ at H4. The larger bodies are scaled from the prim by size.
+- **Sympathetic strings:** open strings that share partials with the played note ring along softly
+  (not on the kontra, whose strokes are damped).
+- **Picks:** a hard horn pick for the prim, bas-prim and kontra (the kontra's is large and thick, so it
+  has more attack), and a soft suede-covered pick for the berde.
 - **Room and level:** a short room reverb and a limiter.
 
 Notes render in a few ms and are cached, and the AudioContext uses `latencyHint: 'interactive'`.

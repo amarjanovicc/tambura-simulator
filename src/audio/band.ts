@@ -43,7 +43,7 @@ export class BandPlayer {
     // Render every note up front (~1 ms each) so nothing is computed mid-song.
     for (const e of events) {
       const inst = getInstrument(e.inst);
-      this.engine.render(inst, e.midi, inst.courses[e.course]?.doubled ?? false);
+      this.engine.render(inst, e.course, e.midi);
     }
     this.events = events;
     this.next = 0;
