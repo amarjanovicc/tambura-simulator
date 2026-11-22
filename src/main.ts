@@ -162,7 +162,16 @@ function renderChords(): void {
   none.type = 'button';
   none.className = 'none';
   none.dataset['chord'] = '';
-  none.textContent = s.noChord;
+  none.setAttribute('aria-label', s.noChord);
+  // A cross on the phone strip, the words in the rail.
+  const cross = document.createElement('span');
+  cross.className = 'none-icon';
+  cross.setAttribute('aria-hidden', 'true');
+  cross.textContent = '×';
+  const label = document.createElement('span');
+  label.className = 'none-text';
+  label.textContent = s.noChord;
+  none.append(cross, label);
   none.setAttribute('aria-pressed', String(player.chordId === null));
   none.addEventListener('click', () => player.selectChord(null, false));
 
@@ -290,7 +299,11 @@ bindToggle('minus', 'minusOne');
 
 const volume = $<HTMLInputElement>('volume');
 volume.value = String(prefs.volume);
+// The filled part of the slider track.
+const paintVolume = (): void => volume.style.setProperty('--val', `${Number(volume.value) * 100}%`);
+paintVolume();
 volume.addEventListener('input', () => {
+  paintVolume();
   prefs.volume = Number(volume.value);
   engine.setVolume(prefs.volume);
   savePrefs(prefs);

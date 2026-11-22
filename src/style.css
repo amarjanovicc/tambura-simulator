@@ -343,9 +343,17 @@ canvas {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 2px 2px 6px;
-  scrollbar-width: thin;
+  padding: 2px 28px 4px 2px;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
   -webkit-overflow-scrolling: touch;
+  /* The fade at the right edge says there is more to scroll. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
+
+.chord-row::-webkit-scrollbar {
+  display: none;
 }
 
 .chord-row button {
@@ -362,6 +370,7 @@ canvas {
   cursor: pointer;
   position: relative;
   touch-action: manipulation;
+  scroll-snap-align: start;
   box-shadow: var(--shadow-tile);
   transition:
     background-color 0.18s var(--ease-out),
@@ -379,20 +388,62 @@ canvas {
   transform: scale(0.95);
 }
 
-.chord-row button.none {
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+/* Selected chord: ink, like its dots on the neck, with a red stitch underneath. Red
+   stays for the main action and for held fingers. */
+.chord-row button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  box-shadow:
+    0 1px 1px rgba(29, 23, 18, 0.1),
+    0 8px 16px -8px rgba(29, 23, 18, 0.6);
 }
 
-.chord-row button[aria-pressed='true'] {
+.chord-row button[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  left: 32%;
+  right: 32%;
+  bottom: 6px;
+  height: 2px;
+  border-radius: 2px;
   background: var(--red);
-  color: var(--paper);
-  border-color: var(--red);
-  box-shadow: var(--shadow-lift);
+}
+
+/* No chord: a quiet dashed tile with a cross. */
+.chord-row button.none {
+  display: inline-grid;
+  place-items: center;
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.chord-row button.none[aria-pressed='true'] {
+  background: transparent;
+  color: var(--ink);
+  border-color: rgba(29, 23, 18, 0.45);
+  box-shadow: none;
+}
+
+.chord-row button.none[aria-pressed='true']::after {
+  content: none;
+}
+
+.none-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.none-text {
+  display: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .chord-row button kbd {
@@ -416,10 +467,31 @@ canvas {
   color: var(--ink-soft);
 }
 
-.band {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
+/* Groups are only sections in the rail; on phones their items sit in one row. */
+.group {
+  display: contents;
+}
+
+.group-label,
+.group-hint {
+  display: none;
+}
+
+.group-label {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.group-hint {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-wrap: pretty;
 }
 
 .play {
@@ -530,7 +602,57 @@ canvas {
 
 .volume input {
   width: 120px;
-  accent-color: var(--red);
+}
+
+/* Slider: a thin track filled in red up to a cream thumb with a red ring. */
+input[type='range'] {
+  appearance: none;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--red) var(--val, 70%), var(--linen-deep) var(--val, 70%));
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid var(--red);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(29, 23, 18, 0.3);
+  transition: transform 0.12s var(--ease-out);
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--linen-deep);
+}
+
+input[type='range']::-moz-range-progress {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--red);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--red);
+  border-radius: 50%;
+  background: var(--paper);
 }
 
 /* The settings button opens a popover on narrow screens. */
@@ -587,8 +709,14 @@ canvas {
 }
 
 .settings:not(:popover-open) {
+  display: none;
   opacity: 0;
   translate: 0 8px;
+}
+
+.settings .group-label {
+  display: block;
+  margin-top: 4px;
 }
 
 @starting-style {
@@ -768,9 +896,11 @@ dialog p {
 
   .chord-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
     overflow: visible;
     padding: 0;
+    mask-image: none;
   }
 
   .chord-row button {
@@ -780,21 +910,61 @@ dialog p {
 
   .chord-row button.none {
     grid-column: 1 / -1;
-    min-height: 40px;
+    display: inline-flex;
+    gap: 8px;
+    min-height: 38px;
+  }
+
+  .none-icon {
+    font-size: 1.1rem;
+  }
+
+  .none-text {
+    display: inline;
   }
 
   .controls {
     flex-direction: column;
     align-items: stretch;
     flex-wrap: nowrap;
-    gap: 2px;
-    padding-top: 14px;
+    gap: 14px;
+    padding-top: 0;
+    border-top: 0;
   }
 
-  .band {
+  .group {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .group-label,
+  .group-hint {
+    display: block;
+  }
+
+  .band .group-hint {
+    margin-bottom: 4px;
+  }
+
+  .band .toggle {
+    min-height: 32px;
+  }
+
+  .chord-row button {
+    min-height: 50px;
+  }
+
+  .toggle {
+    min-height: 34px;
+  }
+
+  /* Tremolo and the display settings read as one "Settings" section. */
+  .controls > .group:nth-child(2) {
+    padding-bottom: 0;
   }
 
   .play {
@@ -812,6 +982,7 @@ dialog p {
     position: static;
     display: flex;
     min-width: 0;
+    margin-top: -14px;
     padding: 0;
     border: 0;
     background: none;
@@ -827,12 +998,31 @@ dialog p {
     width: auto;
     flex: 1;
   }
+
+  .settings:not(:popover-open) .group-label {
+    display: none;
+  }
 }
 
 /* The tagline only where it fits beside the tabs. */
 @media (min-width: 900px) and (max-width: 1239px) {
   .tagline {
     display: none;
+  }
+}
+
+/* Shorter wide screens (laptops): the rail drops its explanations (they stay as tooltips). */
+@media (min-width: 1000px) and (min-height: 600px) and (max-height: 820px) {
+  .group-hint {
+    display: none;
+  }
+
+  .chord-row button {
+    min-height: 44px;
+  }
+
+  .play {
+    min-height: 44px;
   }
 }
 
@@ -880,10 +1070,6 @@ dialog p {
   .play {
     min-width: 96px;
     padding-inline: 14px;
-  }
-
-  .band {
-    gap: 10px;
   }
 }
 
@@ -951,13 +1137,8 @@ dialog p {
     padding-top: 6px;
   }
 
-  .band {
-    flex: 1 1 100%;
-    gap: 10px;
-  }
-
   .play {
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
     min-height: 40px;
     padding-inline: 10px;
