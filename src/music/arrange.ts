@@ -194,8 +194,8 @@ export function arrange(song: Song): Arrangement {
   };
 
   let t = 0;
-  const first = song.bars[0]?.chord ?? song.ending.chord;
-  for (let i = 0; i < song.introBars; i++, t += barLength) rhythm(chordList(first)[0]!, t);
+  const first = song.introChord ?? chordList(song.bars[0]?.chord ?? song.ending.chord)[0]!;
+  for (let i = 0; i < song.introBars; i++, t += barLength) rhythm(first, t);
   for (let r = 0; r < song.repeats; r++) {
     for (const bar of song.bars) {
       rhythm(bar.chord, t);
@@ -204,7 +204,7 @@ export function arrange(song: Song): Arrangement {
       for (const [midi, eighths, tremolo] of bar.melody) {
         // The chord under this note: the second one in the bar's second half.
         const chordId = list[list.length > 1 && u - t >= barLength / 2 - 1e-6 ? 1 : 0];
-        voices(midi, u, eighths * eighth, tremolo ?? false, chordId);
+        if (midi > 0) voices(midi, u, eighths * eighth, tremolo ?? false, chordId);
         u += eighths * eighth;
       }
       t += barLength;

@@ -46,6 +46,9 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
 - **Kolo u E-duru:** the whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
   prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
   bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
+- **Ajde lepa Maro (kolo):** a traditional Croatian kolo in D major, both eight-bar strains, twice.
+  The melody is the upper voice of John Chambers' two-voice ABC transcription (abcnotation.com,
+  "O: Croatia"); the arranged second prim lands on the transcription's lower voice.
 - **Pjesma ravnici:** an original slow tune in D major (4/4, 76 bpm), written over the chord
   progression of the refrain of "Ne dirajte mi ravnicu" (G, A7, D, Fis, Hm, B…). The progression is
   free to use; the melody is new. The whole band plays it: prim melody with tremolo on long notes,

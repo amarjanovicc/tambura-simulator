@@ -1,6 +1,6 @@
 import type { Lang } from '../i18n';
 
-/** [MIDI note, length in eighths, tremolo] */
+/** [MIDI note, length in eighths, tremolo]. MIDI 0 is a rest. */
 export type MelodyNote = readonly [midi: number, eighths: number, tremolo?: boolean];
 
 export interface SongBar {
@@ -23,6 +23,8 @@ export interface Song {
   tonic: number;
   /** Bars of rhythm only before the melody starts. */
   introBars: number;
+  /** Chord of those bars (defaults to the first bar's chord). */
+  introChord?: string;
   bars: readonly SongBar[];
   repeats: number;
   /** Final bar: one chord and a held melody note. */
@@ -173,8 +175,45 @@ export const PJESMA_RAVNICI: Song = {
   ending: { chord: 'D', note: 74, beats: 3 },
 };
 
+/**
+ * "Ajde lepa Maro", a Croatian folk kolo (traditional), in D major. The melody is the
+ * upper voice of John Chambers' two-voice ABC transcription (1997, "O: Croatia",
+ * abcnotation.com); the second prim plays the lower voice's thirds. Two eight-bar strains;
+ * the whole tune is played twice.
+ */
+export const AJDE_LEPA_MARO: Song = {
+  id: 'ajde-lepa-maro',
+  title: { hr: 'Ajde lepa Maro (kolo)', en: 'Ajde lepa Maro (kolo)' },
+  bpm: 112,
+  tonic: 2,
+  introBars: 2,
+  introChord: 'D',
+  repeats: 2,
+  bars: [
+    // First strain
+    { chord: 'G', melody: [[83, 1], [81, 1], [79, 1], [78, 1]] },
+    { chord: 'A', melody: [[79, 3, true], [79, 1]] },
+    { chord: 'D', melody: [[78, 1], [81, 1], [78, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 2], [81, 2]] },
+    { chord: 'G', melody: [[83, 1], [81, 1], [79, 1], [78, 1]] },
+    { chord: 'A', melody: [[79, 3, true], [79, 1]] },
+    { chord: 'D', melody: [[78, 1], [81, 1], [78, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 2], [76, 1], [0, 1]] },
+    // Second strain
+    { chord: 'D', melody: [[74, 1], [74, 1], [73, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 3, true], [78, 1]] },
+    { chord: ['A', 'E7'], melody: [[79, 1], [76, 1], [78, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 2], [81, 2]] },
+    { chord: 'D', melody: [[74, 1], [74, 1], [73, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 3, true], [78, 1]] },
+    { chord: ['A', 'E7'], melody: [[79, 1], [76, 1], [78, 1], [74, 1]] },
+    { chord: 'A', melody: [[76, 2], [76, 1], [0, 1]] },
+  ],
+  ending: { chord: 'D', note: 74, beats: 1.5 },
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];
+export const SONGS: readonly Tune[] = [KOLO_E, AJDE_LEPA_MARO, PJESMA_RAVNICI, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU, RAVNICA_REFREN];

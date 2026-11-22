@@ -139,6 +139,10 @@ describe('slow songs with a melody', () => {
       let pos = 0;
       for (const [midi, eighths] of bar.melody) {
         const chordId = list[list.length > 1 && pos >= 4 ? 1 : 0]!;
+        if (midi === 0) {
+          pos += eighths;
+          continue;
+        }
         const below = harmonyBelow(midi, PJESMA_RAVNICI.tonic, chordId);
         expect([3, 4]).toContain(midi - below);
         const chord = chordById(chordId)!;
@@ -147,6 +151,16 @@ describe('slow songs with a melody', () => {
         if (third !== undefined) expect(below).toBe(third);
         pos += eighths;
       }
+    }
+  });
+});
+
+describe('every tune', () => {
+  it('arranges without errors, with every note in reach', () => {
+    for (const song of SONGS.filter((x): x is Song => !isBacking(x))) {
+      const { events } = arrange(song);
+      expect(events.some((e) => e.inst === 'prim'), song.id).toBe(true);
+      for (const e of events) expect(e.fret).toBeLessThanOrEqual(getInstrument(e.inst).visibleFrets);
     }
   });
 });
