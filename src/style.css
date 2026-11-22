@@ -682,15 +682,39 @@ input[type='range']::-moz-range-thumb {
   background: var(--paper);
 }
 
-/* Song choice: in the rail beside the band, in the settings popover on portrait phones. */
+/* Song choice: beside the play button (phones in portrait, tall wide screens); in the
+   settings popover where the rail is short (phones in landscape, low laptop screens). */
 .song-pick {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+}
+
+.song-pick.in-settings {
+  display: none;
+}
+
+/* Portrait: play and the song on the first row, the switches and settings on the second. */
+.controls {
+  flex-wrap: wrap;
+}
+
+.play {
+  order: 0;
 }
 
 .song-pick.in-band {
-  display: none;
+  order: 1;
+  flex: 1 1 calc(100% - 140px);
+}
+
+.controls .toggle {
+  order: 2;
+}
+
+.settings-btn {
+  order: 3;
 }
 
 .song-select {
@@ -711,6 +735,19 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   box-shadow: var(--shadow-tile);
   transition: border-color 0.18s;
+  text-overflow: ellipsis;
+}
+
+/* Beside the play button the picker looks like what it is: a song list (note + chevron). */
+.song-pick.in-band .song-select {
+  min-height: 44px;
+  padding-left: 36px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='18' viewBox='0 0 16 18'%3E%3Cpath d='M6 14.5V3.2l8-1.7v11' fill='none' stroke='%23b3221b' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cellipse cx='3.6' cy='14.6' rx='2.6' ry='2' fill='%23b3221b'/%3E%3Cellipse cx='11.6' cy='12.8' rx='2.6' ry='2' fill='%23b3221b'/%3E%3C/svg%3E")
+      no-repeat 12px center,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231d1712' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")
+      no-repeat right 12px center,
+    var(--paper);
 }
 
 .song-select:hover {
@@ -1040,12 +1077,23 @@ dialog p {
 
 /* Tall wide screens: the song picker sits with the band in the rail. */
 @media (min-width: 1000px) and (min-height: 681px) {
+  .song-pick.in-band,
+  .play,
+  .controls .toggle {
+    order: 0;
+    flex: none;
+  }
+}
+
+/* Short rails (phones in landscape, low wide screens): the song list lives under ⚙. */
+@media (min-width: 1000px) and (min-height: 600px) and (max-height: 680px),
+  (orientation: landscape) and (max-height: 599px) and (min-width: 560px) {
   .song-pick.in-band {
-    display: flex;
+    display: none;
   }
 
   .song-pick.in-settings {
-    display: none;
+    display: flex;
   }
 }
 
@@ -1134,8 +1182,7 @@ dialog p {
   }
 
   .controls {
-    gap: 4px 12px;
-    flex-wrap: nowrap;
+    gap: 6px 12px;
   }
 
   .play {

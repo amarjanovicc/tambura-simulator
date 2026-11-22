@@ -78,7 +78,7 @@ describe('song chords', () => {
 describe('slow songs with a melody', () => {
   it('every bar of every tune adds up to its meter', () => {
     for (const song of SONGS) {
-      const eighths = 2 * (song.beatsPerBar ?? 2);
+      const eighths = (song.compound ? 3 : 2) * (song.beatsPerBar ?? 2);
       for (const [i, bar] of song.bars.entries()) {
         const sum = bar.melody.reduce((a, [, e]) => a + e, 0);
         expect(sum, `${song.id} bar ${i + 1}`).toBe(eighths);

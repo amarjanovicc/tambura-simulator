@@ -119,7 +119,7 @@ export function thirdBelow(midi: number, tonic: number): number {
  */
 export function arrange(song: Song): Arrangement {
   const beat = 60 / song.bpm;
-  const eighth = beat / 2;
+  let eighth = beat / 2;
   const prim = getInstrument('prim');
   const basprim = getInstrument('basprim');
   const berde = getInstrument('berde');
@@ -156,6 +156,8 @@ export function arrange(song: Song): Arrangement {
 
   const meter = song.beatsPerBar ?? 2;
   const barLength = meter * beat;
+  // In 6/8 an eighth is a third of the (dotted-quarter) beat.
+  if (song.compound) eighth = beat / 3;
   const chordList = (c: SongBar['chord']): readonly string[] => (typeof c === 'string' ? [c] : c);
 
   /**

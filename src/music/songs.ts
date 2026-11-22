@@ -19,6 +19,8 @@ export interface Song {
   bpm: number;
   /** Beats per bar: 2 for a kolo (the default), 4 for a slow song. */
   beatsPerBar?: 2 | 4;
+  /** Compound time (6/8): each beat is three eighths instead of two. */
+  compound?: boolean;
   /** Pitch class of the key's tonic; the key is major. */
   tonic: number;
   /** Bars of rhythm only before the melody starts. */
@@ -277,4 +279,44 @@ export const KRICI_KRICI_TICEK: Song = {
   ending: { chord: 'A', note: 73, beats: 1.5 },
 };
 
-export const SONGS: readonly Song[] = [KOLO_E, RUZMARIN, KOLO_KALENDARA, CIRO_KOLO, KRICI_KRICI_TICEK, AJDE_LEPA_MARO, PJESMA_RAVNICI];
+/**
+ * "Tiha noć" (Stille Nacht), Franz Xaver Gruber, 1818, in the public domain. 6/8, moved
+ * from C to A major so the prim, second prim and bas-prim all reach it; two verses.
+ */
+export const TIHA_NOC: Song = {
+  id: 'tiha-noc',
+  title: { hr: 'Tiha noć', en: 'Silent Night' },
+  bpm: 54,
+  beatsPerBar: 2,
+  compound: true,
+  tonic: 9,
+  introBars: 2,
+  introChord: 'A',
+  repeats: 2,
+  bars: [
+    { chord: 'A', melody: [[76, 1.5], [78, 0.5], [76, 1], [73, 3, true]] },
+    { chord: 'A', melody: [[76, 1.5], [78, 0.5], [76, 1], [73, 2, true], [0, 1]] },
+    { chord: 'E', melody: [[83, 2], [83, 1], [80, 3, true]] },
+    { chord: 'A', melody: [[81, 2], [81, 1], [76, 2, true], [0, 1]] },
+    { chord: 'D', melody: [[78, 2], [78, 1], [81, 1.5], [80, 0.5], [78, 1]] },
+    { chord: 'A', melody: [[76, 1.5], [78, 0.5], [76, 1], [73, 2, true], [0, 1]] },
+    { chord: 'D', melody: [[78, 2], [78, 1], [81, 1.5], [80, 0.5], [78, 1]] },
+    { chord: 'A', melody: [[76, 1.5], [78, 0.5], [76, 1], [73, 2, true], [0, 1]] },
+    { chord: 'E7', melody: [[83, 2], [83, 1], [86, 1.5], [83, 0.5], [80, 1]] },
+    { chord: 'A', melody: [[81, 3, true], [85, 2, true], [0, 1]] },
+    { chord: ['A', 'E7'], melody: [[81, 1], [76, 1], [73, 1], [76, 1.5], [74, 0.5], [71, 1]] },
+  ],
+  ending: { chord: 'A', note: 69, beats: 2 },
+};
+
+/** The first song is the one selected by default. */
+export const SONGS: readonly Song[] = [
+  CIRO_KOLO,
+  KOLO_KALENDARA,
+  KRICI_KRICI_TICEK,
+  RUZMARIN,
+  AJDE_LEPA_MARO,
+  TIHA_NOC,
+  KOLO_E,
+  PJESMA_RAVNICI,
+];
