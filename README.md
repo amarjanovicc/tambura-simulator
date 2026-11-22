@@ -133,6 +133,13 @@ The canvas draws the neck horizontally on wide screens and vertically on portrai
 Short screens show fewer frets, but never fewer than five, since every chord shape fits in the first five.
 It works from 320 px wide, in portrait and in landscape.
 
+The instruments are drawn after photos of Srijem instruments
+([`src/view/instrument-art.ts`](src/view/instrument-art.ts)): the prim and bas-prim are pears that flow
+into the neck, the prim with rows of small sound holes around a lobed tortoiseshell pickguard; the kontra
+is guitar-shaped with a rosette; the berde has a double bass's outline, f-holes and an ebony tailpiece.
+The fingerboard runs onto the body, the strings close up towards the tailpiece, and the head has its
+tuning machines. The neck is wider than on a real instrument, so a fingertip can hit each string.
+
 ```
 src/
   main.ts              UI wiring, preferences, i18n (hr/en)

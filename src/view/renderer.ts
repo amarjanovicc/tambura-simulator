@@ -4,7 +4,7 @@ import { keyForFret } from '../music/keymap';
 import { noteName } from '../music/notes';
 import type { Player } from '../player';
 import { type Geometry, cellCenter, computeGeometry, stopPosition, toXY } from './geometry';
-import { CREAM, INK, VEZ_RED, paintInstrument } from './instrument-art';
+import { CREAM, INK, VEZ_RED, paintInstrument, tailAnchor } from './instrument-art';
 
 export interface ViewOptions {
   lang: Lang;
@@ -126,7 +126,8 @@ export class Renderer {
 
   private drawStrings(inst: InstrumentDef, now: number): void {
     const g = this.geometry;
-    const tail = g.strumEnd - (g.strumEnd - g.bridge) * 0.35;
+    const { along: tail, spread } = tailAnchor(g, inst);
+    const mid = (g.neckMin + g.neckMax) / 2;
     inst.courses.forEach((course, i) => {
       const cross = g.strings[i] ?? 0;
       const fret = this.player.fretFor(i) ?? 0;
@@ -146,20 +147,29 @@ export class Renderer {
         // The vibrating length.
         const phase = Math.sin(now * 0.09 * (1 + i * 0.13) + off);
         this.string(stop, g.bridge, c, amp * phase, w, course.wound, 1);
-        // Bridge to the tailpiece.
-        this.string(g.bridge, tail, c, 0, w, course.wound, 0.9);
+        // Bridge to the tailpiece, where the strings close up.
+        this.string(g.bridge, tail, c, 0, w, course.wound, 0.9, mid + (c - mid) * spread);
       }
     });
   }
 
   /** One string segment: a shadow, the steel, and a winding texture on wound strings. */
-  private string(a0: number, a1: number, cross: number, disp: number, width: number, wound: boolean, alpha: number): void {
+  private string(
+    a0: number,
+    a1: number,
+    cross: number,
+    disp: number,
+    width: number,
+    wound: boolean,
+    alpha: number,
+    crossEnd = cross,
+  ): void {
     const { ctx, geometry: g } = this;
     const path = new Path2D();
     const steps = Math.abs(disp) > 0.2 ? 16 : 1;
     for (let s = 0; s <= steps; s++) {
       const u = s / steps;
-      const [x, y] = toXY(g, a0 + (a1 - a0) * u, cross + disp * Math.sin(Math.PI * u));
+      const [x, y] = toXY(g, a0 + (a1 - a0) * u, cross + (crossEnd - cross) * u + disp * Math.sin(Math.PI * u));
       if (s === 0) path.moveTo(x, y);
       else path.lineTo(x, y);
     }

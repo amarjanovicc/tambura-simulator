@@ -24,6 +24,10 @@ export interface Geometry {
   neckMax: number;
   bodyMin: number;
   bodyMax: number;
+  /** Along position where the body begins: the high frets lie over it, as on a real prim. */
+  bodyStart: number;
+  /** Along position where the fingerboard ends, a little way into the strumming area. */
+  boardEnd: number;
 }
 
 export type Hit = { zone: 'neck'; course: number; fret: number } | { zone: 'strum' } | null;
@@ -40,7 +44,7 @@ export function computeGeometry(width: number, height: number, courses: number, 
   const pad = 8;
 
   const headStart = pad;
-  const nut = headStart + clamp(L * 0.07, 34, 72);
+  const nut = headStart + clamp(L * 0.075, 40, 84);
   const strumLen = clamp(L * 0.3, 110, 380);
   const strumEnd = L - pad;
   const strumStart = strumEnd - strumLen;
@@ -59,12 +63,15 @@ export function computeGeometry(width: number, height: number, courses: number, 
     frets.push(nut + p * (strumStart - nut));
   }
 
-  // Leave room on both sides so the body's outline shows wider than the neck.
-  const spacing = Math.min(84, ((W - pad * 2) / courses) * 0.84);
+  // Strings far enough apart for a fingertip, but a neck narrow enough that the body
+  // shows clearly wider than it, as on a real tambura.
+  // On a phone that means about 48 px per string, still above the 44 px touch minimum.
+  const spacing = Math.min(64, ((W - pad * 2) / courses) * 0.84, Math.max(46, (W * 0.52) / courses));
   const neckWidth = spacing * courses;
   const neckMin = (W - neckWidth) / 2;
   const strings = Array.from({ length: courses }, (_, i) => neckMin + spacing * (i + 0.5));
-  const bodyWidth = Math.min(W - 6, neckWidth * 1.75);
+  const bodyWidth = Math.min(W - 10, neckWidth * 2.6);
+  const bodyStart = Math.max(nut + (strumStart - nut) * 0.45, strumStart - strumLen * 0.85);
 
   return {
     width,
@@ -82,6 +89,8 @@ export function computeGeometry(width: number, height: number, courses: number, 
     neckMax: neckMin + neckWidth,
     bodyMin: (W - bodyWidth) / 2,
     bodyMax: (W + bodyWidth) / 2,
+    bodyStart,
+    boardEnd: strumStart + strumLen * 0.13,
   };
 }
 
