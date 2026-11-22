@@ -62,7 +62,9 @@ export interface InstrumentDef {
   chordStyle: 'full' | 'bass';
   /** Visual: small holes (prim) or one round sound hole. */
   soundHole: 'holes' | 'round' | 'f-holes';
+  /** Spruce top colour in the middle and towards the edge (sunburst). */
   bodyColor: string;
+  bodyEdge: string;
   tone: ToneParams;
 }
 
@@ -92,7 +94,8 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     visibleFrets: 12,
     chordStyle: 'full',
     soundHole: 'holes',
-    bodyColor: '#d9a35b',
+    bodyColor: '#ecc98f',
+    bodyEdge: '#8a4f1f',
     tone: {
       t60Low: 3.2,
       t60High: 2.2,
@@ -125,7 +128,8 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     visibleFrets: 12,
     chordStyle: 'full',
     soundHole: 'round',
-    bodyColor: '#c98f4a',
+    bodyColor: '#e6bd7b',
+    bodyEdge: '#6e3a17',
     tone: {
       t60Low: 3.8,
       t60High: 2.6,
@@ -158,7 +162,8 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     visibleFrets: 10,
     chordStyle: 'full',
     soundHole: 'round',
-    bodyColor: '#b97c3c',
+    bodyColor: '#e0b26f',
+    bodyEdge: '#4a2510',
     tone: {
       t60Low: 2.6,
       t60High: 1.8,
@@ -192,7 +197,8 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     visibleFrets: 9,
     chordStyle: 'bass',
     soundHole: 'f-holes',
-    bodyColor: '#8f5a2b',
+    bodyColor: '#b97c40',
+    bodyEdge: '#3a1d0c',
     tone: {
       t60Low: 4.5,
       t60High: 3.2,

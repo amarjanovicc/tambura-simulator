@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CHORDS, findVoicing, voicingsFor } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { chordIndexForKey, fretForKey, keyForFret } from './keymap';
-import { noteName, pitchClass } from './notes';
+import { helmholtz, noteName, pitchClass } from './notes';
 
 describe('voicings', () => {
   for (const inst of INSTRUMENTS) {
@@ -56,5 +56,10 @@ describe('notes', () => {
     expect(noteName(71, 'hr')).toBe('H');
     expect(noteName(70, 'hr')).toBe('B');
     expect(noteName(66, 'hr')).toBe('Fis');
+  });
+
+  it('writes tunings in Helmholtz notation', () => {
+    expect([76, 71, 66, 61].map((m) => helmholtz(m, 'hr'))).toEqual(['e²', 'h¹', 'fis¹', 'cis¹']);
+    expect([59, 43, 38, 28].map((m) => helmholtz(m, 'hr'))).toEqual(['h', 'G', 'D', 'E₁']);
   });
 });

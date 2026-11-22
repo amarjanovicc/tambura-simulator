@@ -41,10 +41,11 @@ export function computeGeometry(width: number, height: number, courses: number, 
 
   const headStart = pad;
   const nut = headStart + clamp(L * 0.07, 34, 72);
-  const strumLen = clamp(L * 0.28, 100, 340);
+  const strumLen = clamp(L * 0.3, 110, 380);
   const strumEnd = L - pad;
   const strumStart = strumEnd - strumLen;
-  const bridge = strumEnd - Math.min(34, strumLen * 0.16);
+  // Room behind the bridge for the tail of the body and the string pins.
+  const bridge = strumEnd - strumLen * 0.22;
   // Short screens show fewer frets rather than frets too small to touch.
   const fretCount = clamp(Math.floor((strumStart - nut) / MIN_CELL), Math.min(MIN_FRETS, maxFrets), maxFrets);
 
@@ -58,11 +59,12 @@ export function computeGeometry(width: number, height: number, courses: number, 
     frets.push(nut + p * (strumStart - nut));
   }
 
-  const spacing = Math.min(84, (W - pad * 2) / courses);
+  // Leave room on both sides so the body's outline shows wider than the neck.
+  const spacing = Math.min(84, ((W - pad * 2) / courses) * 0.84);
   const neckWidth = spacing * courses;
   const neckMin = (W - neckWidth) / 2;
   const strings = Array.from({ length: courses }, (_, i) => neckMin + spacing * (i + 0.5));
-  const bodyWidth = Math.min(W - 4, neckWidth * 1.6);
+  const bodyWidth = Math.min(W - 6, neckWidth * 1.75);
 
   return {
     width,

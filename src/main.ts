@@ -5,7 +5,7 @@ import { type Lang, t } from './i18n';
 import { Controller } from './input/controller';
 import { CHORDS } from './music/chords';
 import { INSTRUMENTS, type InstrumentId, getInstrument, resolveInstrumentId } from './music/instruments';
-import { noteName } from './music/notes';
+import { helmholtz } from './music/notes';
 import { KOLO_E } from './music/songs';
 import { Player } from './player';
 import { Renderer } from './view/renderer';
@@ -120,7 +120,13 @@ function renderInstruments(): void {
     ...INSTRUMENTS.map((inst) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = inst.name[prefs.lang];
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = inst.name[prefs.lang];
+      const alias = document.createElement('span');
+      alias.className = 'alias';
+      alias.textContent = inst.alias[prefs.lang];
+      b.append(name, alias);
       b.setAttribute('aria-pressed', String(inst.id === player.inst.id));
       b.addEventListener('click', () => selectInstrument(inst.id));
       return b;
@@ -167,15 +173,19 @@ function renderChords(): void {
 function renderInfo(): void {
   const s = t(prefs.lang);
   const inst = player.inst;
-  const tuning = inst.courses.map((c) => noteName(c.midi, prefs.lang) + (c.doubled ? '×2' : '')).join(' · ');
+  // Strings from the top, the way tamburaši say a tuning: e² e² h¹ fis¹ cis¹.
+  const strings = [...inst.courses]
+    .reverse()
+    .flatMap((c) => (c.doubled ? [c.midi, c.midi] : [c.midi]))
+    .map((m) => helmholtz(m, prefs.lang))
+    .join(' ');
   const info = $('info');
-  info.replaceChildren();
-  const name = document.createElement('strong');
-  name.textContent = inst.name[prefs.lang];
-  const role = document.createElement('span');
-  role.className = 'role';
-  role.textContent = ` (${inst.alias[prefs.lang]}) · ${inst.role[prefs.lang]}`;
-  info.append(name, role, ` · ${s.eSystem}: ${tuning}`);
+  const role = document.createElement('em');
+  role.textContent = inst.role[prefs.lang];
+  const tuning = document.createElement('span');
+  tuning.className = 'tuning';
+  tuning.textContent = strings;
+  info.replaceChildren(role, ` · ${s.eSystem} `, tuning);
 }
 
 function applyLang(): void {

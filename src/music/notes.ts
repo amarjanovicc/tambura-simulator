@@ -24,3 +24,24 @@ export function noteName(midi: number, lang: Lang): string {
 export function noteNameWithOctave(midi: number, lang: Lang): string {
   return `${noteName(midi, lang)}${Math.floor(midi / 12) - 1}`;
 }
+
+const HELMHOLTZ: Record<Lang, readonly string[]> = {
+  hr: ['c', 'cis', 'd', 'dis', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'],
+  en: ['c', 'c♯', 'd', 'd♯', 'e', 'f', 'f♯', 'g', 'g♯', 'a', 'b♭', 'b'],
+};
+const SUP = ['', '¹', '²', '³', '⁴'];
+const SUB = ['', '₁', '₂'];
+
+/**
+ * Helmholtz pitch notation, as tamburaši write tunings: c¹ is middle C (MIDI 60), the
+ * small octave is lower case (h), the great octave capitalised (D), lower ones get a
+ * subscript (E₁).
+ */
+export function helmholtz(midi: number, lang: Lang): string {
+  const name = HELMHOLTZ[lang][pitchClass(midi)] ?? '?';
+  const octave = Math.floor(midi / 12) - 1;
+  if (octave >= 4) return name + (SUP[octave - 3] ?? '');
+  if (octave === 3) return name;
+  const upper = name.charAt(0).toUpperCase() + name.slice(1);
+  return octave === 2 ? upper : upper + (SUB[2 - octave] ?? '');
+}

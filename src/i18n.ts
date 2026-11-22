@@ -3,6 +3,7 @@ export type Lang = 'hr' | 'en';
 const strings = {
   hr: {
     title: 'Tambura simulator',
+    tagline: 'simulator · srijemski E-štim',
     instrument: 'Instrument',
     chords: 'Akordi',
     noChord: 'Bez akorda',
@@ -14,7 +15,7 @@ const strings = {
     close: 'Zatvori',
     tapToStart: 'Dodirni žice ili pritisni tipku za zvuk',
     tuning: 'Ugađanje',
-    eSystem: 'Srijemski E-štim',
+    eSystem: 'srijemski E-štim',
     playSong: '▶ Kolo',
     stopSong: '■ Stop',
     minusOne: 'Bez mene',
@@ -39,6 +40,7 @@ const strings = {
   },
   en: {
     title: 'Tambura simulator',
+    tagline: 'simulator · Srijem E tuning',
     instrument: 'Instrument',
     chords: 'Chords',
     noChord: 'No chord',

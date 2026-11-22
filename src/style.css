@@ -1,14 +1,23 @@
+/*
+ * Slavonian folk: linen (platno), the red and black of embroidery (vez), gold thread
+ * (zlatovez), and an editorial serif. The instrument is the hero; the interface stays quiet.
+ */
 :root {
-  color-scheme: dark;
-  --bg: #1a110b;
-  --panel: #26190f;
-  --line: #4a3322;
-  --text: #f3e6cc;
-  --muted: #b9a68a;
-  --accent: #e46a4f;
-  --gold: #f2d27a;
-  --radius: 12px;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+  --linen: #f2e9d8;
+  --linen-deep: #e9dcc3;
+  --paper: #fbf5ea;
+  --ink: #1d1712;
+  --ink-soft: #5d5145;
+  --muted: #8a7b69;
+  --rule: rgba(29, 23, 18, 0.16);
+  --red: #b3221b;
+  --red-deep: #8c1813;
+  --gold: #b8892f;
+  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius: 6px;
+  font-family: var(--sans);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -20,8 +29,12 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
+  color: var(--ink);
+  background-color: var(--linen);
+  /* A faint woven texture, like linen. */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(90, 60, 30, 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(90, 60, 30, 0.03) 0 1px, transparent 1px 4px);
   overscroll-behavior: none;
 }
 
@@ -42,16 +55,18 @@ input {
 
 .app {
   display: grid;
-  grid-template-rows: auto auto minmax(300px, 1fr) auto auto;
+  grid-template-rows: auto auto auto minmax(300px, 1fr) auto auto;
   /* minmax(0, …) stops the scrolling chord row from widening the page. */
   grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
-  max-width: 1400px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
-    max(10px, env(safe-area-inset-left));
+  padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   gap: 8px;
 }
+
+/* ---- Header ---------------------------------------------------------------------- */
 
 .top {
   display: grid;
@@ -59,87 +74,143 @@ input {
   grid-template-areas:
     'brand actions'
     'tabs tabs';
-  align-items: center;
-  gap: 8px 12px;
+  align-items: end;
+  gap: 10px 16px;
 }
 
 .brand {
   grid-area: brand;
-  margin: 0;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
 }
 
-.brand span {
+.brand h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 144;
+}
+
+.tagline {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--muted);
-  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .top-actions {
   grid-area: actions;
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .instruments {
   grid-area: tabs;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-bottom: 1px solid var(--rule);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .top {
     grid-template-columns: auto 1fr auto;
     grid-template-areas: 'brand tabs actions';
   }
 
   .instruments {
-    max-width: 560px;
-    justify-self: center;
+    max-width: 620px;
     width: 100%;
+    justify-self: center;
   }
 }
 
 .instruments button {
-  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px 8px;
   border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 0.9rem;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--ink-soft);
   cursor: pointer;
-  padding: 4px 2px;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.instruments .name {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.instruments .alias {
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.instruments button:hover {
+  color: var(--ink);
 }
 
 .instruments button[aria-pressed='true'] {
-  background: var(--gold);
-  color: #2a1608;
+  color: var(--ink);
+  border-bottom-color: var(--red);
+}
+
+.instruments button[aria-pressed='true'] .name {
+  font-weight: 600;
+}
+
+/* A band of cross-stitch, as on Slavonian embroidery. */
+.vez {
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23b3221b'%3E%3Crect x='10' y='0' width='4' height='2'/%3E%3Crect x='8' y='2' width='2' height='2'/%3E%3Crect x='14' y='2' width='2' height='2'/%3E%3Crect x='6' y='4' width='2' height='4'/%3E%3Crect x='16' y='4' width='2' height='4'/%3E%3Crect x='8' y='8' width='2' height='2'/%3E%3Crect x='14' y='8' width='2' height='2'/%3E%3Crect x='10' y='10' width='4' height='2'/%3E%3C/g%3E%3Cg fill='%231d1712'%3E%3Crect x='11' y='5' width='2' height='2'/%3E%3Crect x='0' y='5' width='2' height='2'/%3E%3Crect x='22' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23b8892f'%3E%3Crect x='3' y='5' width='1' height='2'/%3E%3Crect x='20' y='5' width='1' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.85;
 }
 
 .info {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
   text-align: center;
+  font-family: var(--serif);
+  font-size: 0.98rem;
+  color: var(--ink-soft);
 }
 
-.info strong {
-  color: var(--text);
+.info em {
+  color: var(--ink);
 }
+
+.info .tuning {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--red-deep);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Stage ----------------------------------------------------------------------- */
 
 .stage {
   position: relative;
   min-height: 0;
-  border-radius: var(--radius);
-  background: radial-gradient(ellipse at 70% 50%, #2c1c10, #140c07 75%);
-  border: 1px solid var(--line);
-  overflow: hidden;
 }
 
 canvas {
@@ -156,14 +227,16 @@ canvas {
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 10px;
+  bottom: 6px;
   transform: translateX(-50%);
   margin: 0;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--text);
-  font-size: 0.8rem;
+  padding: 5px 12px;
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
   transition: opacity 0.4s;
@@ -173,6 +246,8 @@ canvas {
   display: block;
   opacity: 0;
 }
+
+/* ---- Chords ---------------------------------------------------------------------- */
 
 .chord-row {
   display: flex;
@@ -186,60 +261,137 @@ canvas {
 .chord-row button {
   flex: 0 0 auto;
   min-width: 52px;
-  min-height: 48px;
+  min-height: 52px;
   padding: 4px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  font-weight: 700;
-  font-size: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 600;
   cursor: pointer;
   position: relative;
   touch-action: manipulation;
+  box-shadow: 0 1px 0 rgba(29, 23, 18, 0.06);
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    transform 0.08s;
+}
+
+.chord-row button:hover {
+  border-color: rgba(29, 23, 18, 0.35);
+}
+
+.chord-row button:active {
+  transform: translateY(1px);
 }
 
 .chord-row button.none {
+  font-family: var(--sans);
   font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .chord-row button[aria-pressed='true'] {
-  background: var(--gold);
-  color: #2a1608;
-  border-color: var(--gold);
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
 }
 
 .chord-row button kbd {
   position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: 0.6rem;
-  font-family: inherit;
-  opacity: 0.55;
+  top: 3px;
+  right: 5px;
+  font-family: var(--sans);
+  font-size: 0.56rem;
+  font-weight: 500;
+  opacity: 0.5;
 }
+
+/* ---- Controls -------------------------------------------------------------------- */
 
 .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 14px;
-  font-size: 0.9rem;
-  color: var(--muted);
+  gap: 6px 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.band {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  min-width: 104px;
+  padding: 6px 18px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--red);
+  color: var(--paper);
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 var(--red-deep);
+}
+
+.play:hover {
+  background: var(--red-deep);
+}
+
+.play[aria-pressed='true'] {
+  background: var(--ink);
+  box-shadow: none;
 }
 
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-height: 36px;
   cursor: pointer;
 }
 
+/* Square check boxes, like a stitch. */
 .toggle input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+
+.toggle input::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--red);
+  transform: scale(0);
+  transition: transform 0.12s;
+}
+
+.toggle input:checked::before {
+  transform: scale(1);
 }
 
 .volume {
@@ -251,7 +403,7 @@ canvas {
 
 .volume input {
   width: 110px;
-  accent-color: var(--gold);
+  accent-color: var(--red);
 }
 
 /* Key labels are for physical keyboards only. */
@@ -263,20 +415,26 @@ canvas {
 }
 
 .chip {
-  min-height: 34px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--panel);
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.chip:hover {
+  color: var(--ink);
+  background: var(--linen-deep);
 }
 
 .chip.primary {
-  background: var(--gold);
-  color: #2a1608;
-  border-color: var(--gold);
-  font-weight: 700;
+  background: var(--ink);
+  color: var(--paper);
 }
 
 button:focus-visible,
@@ -285,29 +443,37 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+/* ---- Help ------------------------------------------------------------------------ */
+
 dialog {
-  max-width: min(560px, calc(100vw - 24px));
+  max-width: min(580px, calc(100vw - 24px));
   max-height: calc(100dvh - 32px);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  color: var(--text);
-  padding: 18px 20px;
-  line-height: 1.45;
+  border: 0;
+  border-top: 6px solid var(--red);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 22px 24px;
+  line-height: 1.5;
+  box-shadow: 0 24px 60px rgba(40, 20, 5, 0.25);
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(29, 23, 18, 0.45);
 }
 
 dialog h2 {
   margin-top: 0;
+  font-family: var(--serif);
+  font-weight: 600;
 }
 
 dialog h3 {
   margin-bottom: 4px;
-  font-size: 1rem;
-  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red-deep);
 }
 
 dialog ul {
@@ -315,13 +481,52 @@ dialog ul {
   margin-top: 4px;
 }
 
-@media (max-width: 380px) {
-  .brand {
-    font-size: 1rem;
+/* ---- Small screens --------------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .app {
+    gap: 6px;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .brand h1 {
+    font-size: 1.5rem;
   }
 
   .instruments button {
-    font-size: 0.8rem;
+    padding: 4px 2px 6px;
+  }
+
+  .instruments .name {
+    font-size: 0.95rem;
+  }
+
+  .hint {
+    width: max-content;
+    max-width: 92%;
+    white-space: normal;
+    text-align: center;
+    font-size: 0.6rem;
+  }
+
+  .instruments .alias {
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+  }
+
+  .info {
+    font-size: 0.86rem;
+  }
+
+  .volume span {
+    display: none;
+  }
+
+  .controls {
+    gap: 4px 12px;
   }
 
   .volume input {
@@ -329,26 +534,11 @@ dialog ul {
   }
 }
 
-@media (max-width: 480px) {
-  .info {
-    font-size: 0.75rem;
-  }
-
-  .info .role,
-  .volume span {
-    display: none;
-  }
-
-  .controls {
-    gap: 4px 10px;
-  }
-}
-
-/* Phones in landscape: one header row, smaller chrome, everything on one screen. */
+/* Phones in landscape: one header row, everything on one screen. */
 @media (max-height: 520px) and (orientation: landscape) {
   .app {
     grid-template-rows: auto minmax(160px, 1fr) auto auto;
-    gap: 6px;
+    gap: 4px;
   }
 
   .top {
@@ -357,33 +547,25 @@ dialog ul {
   }
 
   .brand,
-  .info {
+  .info,
+  .vez {
     display: none;
   }
 
-  .instruments button {
-    min-height: 32px;
+  .instruments .alias {
+    display: none;
   }
 
   .chord-row button {
-    min-height: 40px;
+    min-height: 42px;
   }
 
   .controls {
     flex-wrap: nowrap;
+    padding-top: 4px;
   }
 
   .toggle {
     min-height: 28px;
   }
-}
-
-.band {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.band .chip {
-  min-width: 84px;
 }

@@ -4,6 +4,7 @@ import { keyForFret } from '../music/keymap';
 import { noteName } from '../music/notes';
 import type { Player } from '../player';
 import { type Geometry, cellCenter, computeGeometry, stopPosition, toXY } from './geometry';
+import { CREAM, INK, VEZ_RED, paintInstrument } from './instrument-art';
 
 export interface ViewOptions {
   lang: Lang;
@@ -16,10 +17,14 @@ interface Vibration {
   start: number;
 }
 
-const MARKERS = [5, 7, 10, 12];
 const DECAY_S = 0.9;
+const SERIF = '"Fraunces", Georgia, serif';
 
-/** Draws the instrument on a canvas and animates the strings after each pluck. */
+/**
+ * Draws the instrument on a canvas and animates the strings after each pluck. The parts
+ * that never move are painted once into an offscreen layer; each frame only adds the
+ * strings and the finger marks.
+ */
 export class Renderer {
   geometry: Geometry;
   private readonly ctx: CanvasRenderingContext2D;
@@ -27,6 +32,8 @@ export class Renderer {
   private readonly vib: Vibration[] = [];
   private frame = 0;
   private dirty = true;
+  private layer: HTMLCanvasElement | null = null;
+  private layerKey = '';
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -48,6 +55,11 @@ export class Renderer {
     });
     player.onChange(() => this.invalidate());
     new ResizeObserver(() => this.resize()).observe(canvas);
+    // Repaint once the web font has loaded (the first paint may use the fallback).
+    void document.fonts?.ready.then(() => {
+      this.layerKey = '';
+      this.invalidate();
+    });
     this.resize();
   }
 
@@ -85,152 +97,36 @@ export class Renderer {
     if (vibrating) this.frame = requestAnimationFrame(() => this.tick());
   }
 
+  private staticLayer(inst: InstrumentDef): HTMLCanvasElement {
+    const g = this.geometry;
+    const key = `${inst.id}:${this.canvas.width}x${this.canvas.height}:${g.frets.length}`;
+    if (this.layer && this.layerKey === key) return this.layer;
+    const layer = this.layer ?? document.createElement('canvas');
+    layer.width = this.canvas.width;
+    layer.height = this.canvas.height;
+    const lctx = layer.getContext('2d')!;
+    lctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    lctx.clearRect(0, 0, g.width, g.height);
+    paintInstrument(lctx, g, inst);
+    this.layer = layer;
+    this.layerKey = key;
+    return layer;
+  }
+
   private draw(now: number): void {
-    const { ctx, geometry: g } = this;
+    const { ctx } = this;
     const inst = this.player.inst;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.drawImage(this.staticLayer(inst), 0, 0);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, g.width, g.height);
-    this.drawBody(inst);
-    this.drawNeck();
     this.drawStrings(inst, now);
     this.drawMarks(inst);
   }
 
-  private rect(a0: number, a1: number, c0: number, c1: number): [number, number, number, number] {
-    const [x0, y0] = toXY(this.geometry, a0, c0);
-    const [x1, y1] = toXY(this.geometry, a1, c1);
-    return [Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)];
-  }
-
-  /** A gradient across the strings (from cross c0 to c1). */
-  private gradient(a: number, c0: number, c1: number, stops: [number, string][]): CanvasGradient {
-    const g = this.geometry;
-    const [x0, y0] = toXY(g, a, c0);
-    const [x1, y1] = toXY(g, a, c1);
-    const grad = this.ctx.createLinearGradient(x0, y0, x1, y1);
-    for (const [o, col] of stops) grad.addColorStop(o, col);
-    return grad;
-  }
-
-  private drawBody(inst: InstrumentDef): void {
-    const { ctx, geometry: g } = this;
-    const a0 = g.strumStart - g.spacing * 0.6;
-    const a1 = g.strumEnd;
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(...this.rect(a0, a1, g.bodyMin, g.bodyMax), Math.min(60, (g.bodyMax - g.bodyMin) * 0.35));
-    ctx.fillStyle = this.gradient(a0, g.bodyMin, g.bodyMax, [
-      [0, shade(inst.bodyColor, 0.75)],
-      [0.5, inst.bodyColor],
-      [1, shade(inst.bodyColor, 0.7)],
-    ]);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(30, 15, 5, 0.6)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Sound hole(s), between the neck and the bridge.
-    const holeAlong = g.strumStart + (g.bridge - g.strumStart) * 0.42;
-    const mid = (g.neckMin + g.neckMax) / 2;
-    const r = Math.min((g.neckMax - g.neckMin) * 0.36, (g.bridge - g.strumStart) * 0.32);
-    ctx.fillStyle = '#1b0f08';
-    if (inst.soundHole === 'round') {
-      const [x, y] = toXY(g, holeAlong, mid);
-      for (const [rr, col] of [
-        [r + 9, '#3a2412'],
-        [r + 5, '#e8d4a8'],
-        [r + 3, '#2b1a0c'],
-      ] as const) {
-        ctx.beginPath();
-        ctx.arc(x, y, rr, 0, Math.PI * 2);
-        ctx.fillStyle = col;
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = '#1b0f08';
-      ctx.fill();
-    } else if (inst.soundHole === 'holes') {
-      const small = Math.max(3, r * 0.2);
-      const pts = [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos((i * Math.PI) / 3), Math.sin((i * Math.PI) / 3)])];
-      for (const [u, v] of pts) {
-        const [x, y] = toXY(g, holeAlong + (u ?? 0) * r * 0.6, mid + (v ?? 0) * r * 0.6);
-        ctx.beginPath();
-        ctx.arc(x, y, small, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else {
-      for (const side of [-1, 1]) {
-        const c = mid + side * (g.neckMax - g.neckMin) * 0.62;
-        const [x, y] = toXY(g, holeAlong, c);
-        const [rx, ry] = g.orientation === 'h' ? [r * 0.9, 4] : [4, r * 0.9];
-        ctx.beginPath();
-        ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Bridge.
-    ctx.fillStyle = '#2a170b';
-    ctx.beginPath();
-    ctx.roundRect(...this.rect(g.bridge - 4, g.bridge + 6, g.neckMin + 4, g.neckMax - 4), 3);
-    ctx.fill();
-    ctx.fillStyle = '#efe3c8';
-    ctx.fillRect(...this.rect(g.bridge - 1, g.bridge + 1, g.neckMin + 6, g.neckMax - 6));
-    ctx.restore();
-  }
-
-  private drawNeck(): void {
-    const { ctx, geometry: g } = this;
-    // Head.
-    ctx.fillStyle = this.gradient(g.headStart, g.neckMin, g.neckMax, [
-      [0, '#3b2414'],
-      [0.5, '#5a3820'],
-      [1, '#3b2414'],
-    ]);
-    ctx.beginPath();
-    ctx.roundRect(...this.rect(g.headStart, g.nut, g.neckMin - 6, g.neckMax + 6), 10);
-    ctx.fill();
-    // Fingerboard.
-    ctx.fillStyle = this.gradient(g.nut, g.neckMin, g.neckMax, [
-      [0, '#24140b'],
-      [0.5, '#3a2213'],
-      [1, '#24140b'],
-    ]);
-    ctx.fillRect(...this.rect(g.nut, g.strumStart, g.neckMin, g.neckMax));
-    // Nut.
-    ctx.fillStyle = '#efe6d2';
-    ctx.fillRect(...this.rect(g.nut - 3, g.nut + 3, g.neckMin, g.neckMax));
-    // Fret markers.
-    const mid = (g.neckMin + g.neckMax) / 2;
-    ctx.fillStyle = 'rgba(240, 230, 210, 0.55)';
-    for (const m of MARKERS) {
-      if (m > g.frets.length) continue;
-      const a = cellCenter(g, m);
-      const offsets = m === 12 ? [-g.spacing, g.spacing] : [0];
-      for (const o of offsets) {
-        const [x, y] = toXY(g, a, mid + o);
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    // Fret wires and numbers.
-    ctx.font = '600 10px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    g.frets.forEach((p, i) => {
-      ctx.fillStyle = '#b9b4ab';
-      ctx.fillRect(...this.rect(p - 1.5, p + 1.5, g.neckMin, g.neckMax));
-      ctx.fillStyle = 'rgba(240, 230, 210, 0.45)';
-      const [x, y] = toXY(g, cellCenter(g, i + 1), g.neckMin - 8);
-      if (g.neckMin > 14) ctx.fillText(String(i + 1), x, y);
-    });
-  }
-
   private drawStrings(inst: InstrumentDef, now: number): void {
     const g = this.geometry;
-    const n = inst.courses.length;
+    const tail = g.strumEnd - (g.strumEnd - g.bridge) * 0.35;
     inst.courses.forEach((course, i) => {
       const cross = g.strings[i] ?? 0;
       const fret = this.player.fretFor(i) ?? 0;
@@ -238,47 +134,70 @@ export class Renderer {
       const v = this.vib[i];
       const age = v ? (now - v.start) / 1000 : Infinity;
       const amp = v && age < DECAY_S * 4 ? v.amp * Math.exp(-age / DECAY_S) : 0;
-      const width = 1.2 + ((n - 1 - i) / Math.max(1, n - 1)) * 2.2 + (inst.id === 'berde' ? 1.5 : 0);
-      const wound = i < n - 1 || inst.id === 'berde';
-      const color = wound ? '#d4b483' : '#e6e8ea';
+      // Thicker strings for lower courses; the berde's are heavy.
+      const width = 1 + (course.gauge / 0.9) * 1.6 * (inst.id === 'berde' ? 0.45 : 1);
       const offsets = course.doubled ? [-2.6, 2.6] : [0];
 
       for (const off of offsets) {
-        // Dead part of the string between the head and the stopping point.
-        this.line(g.headStart + 6, stop, cross + off, 0, Math.max(1, width * 0.8), 'rgba(200, 190, 170, 0.35)');
+        const c = cross + off;
+        const w = course.doubled ? width * 0.85 : width;
+        // Head to the stopping point: static, a little dimmer.
+        this.string(g.headStart + 7, stop, c, 0, w, course.wound, 0.75);
+        // The vibrating length.
         const phase = Math.sin(now * 0.09 * (1 + i * 0.13) + off);
-        this.line(stop, g.bridge, cross + off, amp * phase, course.doubled ? width * 0.85 : width, color);
+        this.string(stop, g.bridge, c, amp * phase, w, course.wound, 1);
+        // Bridge to the tailpiece.
+        this.string(g.bridge, tail, c, 0, w, course.wound, 0.9);
       }
     });
   }
 
-  /** A string segment along the neck; `disp` bends it into half a sine (vibration). */
-  private line(a0: number, a1: number, cross: number, disp: number, width: number, color: string): void {
+  /** One string segment: a shadow, the steel, and a winding texture on wound strings. */
+  private string(a0: number, a1: number, cross: number, disp: number, width: number, wound: boolean, alpha: number): void {
     const { ctx, geometry: g } = this;
-    ctx.beginPath();
+    const path = new Path2D();
     const steps = Math.abs(disp) > 0.2 ? 16 : 1;
     for (let s = 0; s <= steps; s++) {
       const u = s / steps;
       const [x, y] = toXY(g, a0 + (a1 - a0) * u, cross + disp * Math.sin(Math.PI * u));
-      if (s === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (s === 0) path.moveTo(x, y);
+      else path.lineTo(x, y);
     }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
+    ctx.globalAlpha = alpha;
     ctx.lineCap = 'round';
-    ctx.stroke();
+    ctx.save();
+    ctx.translate(g.orientation === 'h' ? 0 : 1.2, g.orientation === 'h' ? 1.2 : 0);
+    ctx.strokeStyle = 'rgba(40, 22, 8, 0.35)';
+    ctx.lineWidth = width + 0.6;
+    ctx.stroke(path);
+    ctx.restore();
+    ctx.strokeStyle = wound ? '#bdb9b0' : '#e4e7ea';
+    ctx.lineWidth = width;
+    ctx.stroke(path);
+    if (wound) {
+      ctx.setLineDash([1, 1.6]);
+      ctx.strokeStyle = '#6f6b63';
+      ctx.lineWidth = width;
+      ctx.stroke(path);
+      ctx.setLineDash([]);
+    } else {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = Math.max(0.5, width * 0.35);
+      ctx.stroke(path);
+    }
+    ctx.globalAlpha = 1;
   }
 
   private drawMarks(inst: InstrumentDef): void {
     const { ctx, geometry: g } = this;
     const { lang, showKeys, showNotes } = this.opts;
-    const r = Math.max(10, Math.min(17, g.spacing * 0.26));
+    const r = Math.max(11, Math.min(18, g.spacing * 0.26));
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     if (showKeys) {
       ctx.font = '600 10px system-ui, sans-serif';
-      ctx.fillStyle = 'rgba(250, 240, 220, 0.5)';
+      ctx.fillStyle = 'rgba(251, 243, 228, 0.55)';
       inst.courses.forEach((_, i) => {
         for (let f = 0; f <= g.frets.length; f++) {
           const label = keyForFret(i, f);
@@ -295,36 +214,44 @@ export class Renderer {
       const held = this.player.isHeld(i);
       const [x, y] = toXY(g, cellCenter(g, fret ?? 0), cross);
       if (fret === null) {
-        ctx.font = '700 16px system-ui, sans-serif';
-        ctx.fillStyle = '#e46a4f';
-        ctx.fillText('×', x, y);
+        // A muted string: a small cream disc with a red cross, readable on the dark head.
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.62, 0, Math.PI * 2);
+        ctx.fillStyle = CREAM;
+        ctx.fill();
+        ctx.font = `700 ${Math.round(r * 0.95)}px ${SERIF}`;
+        ctx.fillStyle = VEZ_RED;
+        ctx.fillText('×', x, y + 0.5);
         return;
       }
       const isOpen = fret === 0;
+      const radius = isOpen && !held ? r * 0.85 : r;
+      ctx.save();
+      ctx.shadowColor = 'rgba(30, 15, 5, 0.35)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 1.5;
       ctx.beginPath();
-      ctx.arc(x, y, isOpen ? r * 0.85 : r, 0, Math.PI * 2);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = held ? VEZ_RED : isOpen ? CREAM : INK;
+      ctx.fill();
+      ctx.restore();
       if (isOpen && !held) {
-        ctx.fillStyle = 'rgba(20, 10, 4, 0.75)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(240, 220, 180, 0.6)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.4;
         ctx.stroke();
       } else {
-        ctx.fillStyle = held ? '#e46a4f' : '#f2d27a';
-        ctx.fill();
+        // A thin cream ring, like an embroidered edge.
+        ctx.beginPath();
+        ctx.arc(x, y, radius - 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(251, 243, 228, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
       if (showNotes || isOpen) {
-        ctx.font = `700 ${Math.round(r * 0.75)}px system-ui, sans-serif`;
-        ctx.fillStyle = isOpen && !held ? '#f3e6cc' : '#2a1608';
+        ctx.font = `600 ${Math.round(radius * 0.78)}px ${SERIF}`;
+        ctx.fillStyle = isOpen && !held ? INK : CREAM;
         ctx.fillText(noteName(course.midi + fret, lang), x, y + 0.5);
       }
     });
   }
-}
-
-/** Multiplies a #rrggbb colour's channels by k. */
-function shade(hex: string, k: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (s: number): number => Math.min(255, Math.round(((n >> s) & 255) * k));
-  return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`;
 }
