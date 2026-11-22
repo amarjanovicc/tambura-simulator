@@ -51,6 +51,9 @@ Pick a song (in the rail, or under ⚙ on phones) and press play.
   current and next chord show in the corner and the neck shows the chord's shape. The song (Ratko Šoć,
   sung by Zvonko Bogdan) is under copyright, so only its chords are used (verses in E minor, refrain in
   G, from a published chord sheet); the bar lengths are estimated.
+- **Ne dirajte mi ravnicu (pratnja):** the same kind of backing, in D at 76 bpm, from a published chord
+  sheet of Miroslav Škoro's 1992 song (D, Em, G, A7, and Fis, Hm, B in the refrain). Again only the
+  chords are used; bar lengths and tempo are estimated.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.

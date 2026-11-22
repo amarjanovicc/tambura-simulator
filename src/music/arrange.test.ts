@@ -3,7 +3,7 @@ import { arrange, arrangeBacking, placeNote, thirdBelow } from './arrange';
 import { chordById, findVoicing } from './chords';
 import { INSTRUMENTS, getInstrument } from './instruments';
 import { pitchClass } from './notes';
-import { KOLO_E, OSAM_TAMBURASA } from './songs';
+import { KOLO_E, OSAM_TAMBURASA, SONGS, isBacking } from './songs';
 
 describe('arrange', () => {
   const { events, duration } = arrange(KOLO_E);
@@ -62,6 +62,10 @@ describe('helpers', () => {
 });
 
 describe('arrangeBacking', () => {
+  it('arranges every backing track without errors', () => {
+    for (const track of SONGS.filter(isBacking)) expect(arrangeBacking(track).events.length).toBeGreaterThan(0);
+  });
+
   const { events, duration, chords } = arrangeBacking(OSAM_TAMBURASA);
   const beat = 60 / OSAM_TAMBURASA.bpm;
   const bar = OSAM_TAMBURASA.meter * beat;
@@ -97,7 +101,9 @@ describe('arrangeBacking', () => {
 
 describe('song chords', () => {
   it('every instrument has a shape for every chord a song uses', () => {
-    const used = new Set([...OSAM_TAMBURASA.bars.flat(), OSAM_TAMBURASA.ending]);
+    const tracks = SONGS.filter(isBacking);
+    expect(tracks.length).toBeGreaterThan(1);
+    const used = new Set(tracks.flatMap((t) => [...t.bars.flat(), t.ending]));
     for (const inst of INSTRUMENTS) {
       for (const id of used) {
         const chord = chordById(id);

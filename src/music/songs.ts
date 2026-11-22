@@ -96,8 +96,35 @@ export const OSAM_TAMBURASA: BackingTrack = {
   ending: 'G',
 };
 
+const RAVNICA_VERSE = [['D'], ['D', 'Em'], ['G', 'A7'], ['D'], ['D'], ['Em'], ['G', 'A7'], ['D']] as const;
+const RAVNICA_CHORUS = [['G'], ['A7'], ['D', 'Fis'], ['Hm', 'Bes'], ['D'], ['Em'], ['G', 'A7'], ['D']] as const;
+
+/**
+ * "Ne dirajte mi ravnicu" (Miroslav Škoro, 1992): the accompaniment only, from a
+ * published chord sheet in D (the melody and lyrics are under copyright and are not
+ * reproduced). Three verses, each followed by the refrain; bar lengths and tempo are
+ * estimated. A two-bar G–A7–D lead-in.
+ */
+export const NE_DIRAJTE_MI_RAVNICU: BackingTrack = {
+  id: 'ne-dirajte-mi-ravnicu',
+  title: { hr: 'Ne dirajte mi ravnicu (pratnja)', en: 'Ne dirajte mi ravnicu (backing)' },
+  bpm: 76,
+  meter: 4,
+  bars: [
+    ['G', 'A7'],
+    ['D'],
+    ...RAVNICA_VERSE,
+    ...RAVNICA_CHORUS,
+    ...RAVNICA_VERSE,
+    ...RAVNICA_CHORUS,
+    ...RAVNICA_VERSE,
+    ...RAVNICA_CHORUS,
+  ],
+  ending: 'D',
+};
+
 export type Tune = Song | BackingTrack;
 
 export const isBacking = (t: Tune): t is BackingTrack => 'meter' in t;
 
-export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA];
+export const SONGS: readonly Tune[] = [KOLO_E, OSAM_TAMBURASA, NE_DIRAJTE_MI_RAVNICU];
