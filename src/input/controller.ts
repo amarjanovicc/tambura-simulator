@@ -122,6 +122,8 @@ export class Controller {
     if (target?.closest('dialog, textarea, select, input[type="text"]')) return;
     // The volume slider keeps its arrow keys.
     if (target?.matches('input[type="range"]') && e.code.startsWith('Arrow')) return;
+    // Escape closes an open popover (the settings) before it clears the chord.
+    if (e.code === 'Escape' && document.querySelector(':popover-open')) return;
 
     const handled = this.handleKey(e);
     if (handled) {

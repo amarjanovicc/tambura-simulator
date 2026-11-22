@@ -132,6 +132,24 @@ function renderInstruments(): void {
       return b;
     }),
   );
+  // Drives the sliding underline under the selected tab.
+  instrumentsNav.style.setProperty('--active', String(INSTRUMENTS.findIndex((i) => i.id === player.inst.id)));
+}
+
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+/** The new instrument rises into place, so the switch reads as a change, not a flicker. */
+function animateSwap(): void {
+  if (reducedMotion.matches) return;
+  const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+  canvas.animate(
+    [
+      { opacity: 0, transform: 'translateY(10px) scale(0.985)' },
+      { opacity: 1, transform: 'none' },
+    ],
+    { duration: 320, easing: ease },
+  );
+  $('info').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: ease });
 }
 
 function renderChords(): void {
@@ -197,6 +215,13 @@ function applyLang(): void {
     const value = s[key];
     if (typeof value === 'string') el.textContent = value;
   }
+  for (const el of document.querySelectorAll<HTMLElement>('[data-i18n-label]')) {
+    const value = s[el.dataset['i18nLabel'] as keyof typeof s];
+    if (typeof value === 'string') {
+      el.setAttribute('aria-label', value);
+      el.title = value;
+    }
+  }
   $('lang-btn').textContent = prefs.lang === 'hr' ? 'EN' : 'HR';
   canvas.setAttribute(
     'aria-label',
@@ -231,6 +256,7 @@ function selectInstrument(id: InstrumentId): void {
   renderInstruments();
   renderChords();
   renderInfo();
+  animateSwap();
 }
 
 player.onChange(() => {

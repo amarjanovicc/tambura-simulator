@@ -1,6 +1,13 @@
 /*
  * Slavonian folk: linen (platno), the red and black of embroidery (vez), gold thread
- * (zlatovez), and an editorial serif. The instrument is the hero; the interface stays quiet.
+ * (zlatovez), and an editorial serif. The instrument is the hero; the interface stays quiet
+ * and gives it as much of the screen as it can.
+ *
+ * Layouts:
+ * - Portrait (phones, tablets): header, instrument, then a chord strip and one row of
+ *   controls; the rarer settings live in a popover.
+ * - Wide screens and phones in landscape: the chords and controls move into a rail on the
+ *   right, so the instrument gets the full height.
  */
 :root {
   color-scheme: light;
@@ -10,15 +17,24 @@
   --ink: #1d1712;
   --ink-soft: #5d5145;
   --muted: #8a7b69;
-  --rule: rgba(29, 23, 18, 0.16);
+  --rule: rgba(29, 23, 18, 0.14);
   --red: #b3221b;
   --red-deep: #8c1813;
   --gold: #b8892f;
   --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --radius: 6px;
+  --radius: 8px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --tile: clamp(48px, 3.2vw + 30px, 58px);
+  --shadow-tile: 0 1px 0 rgba(29, 23, 18, 0.05), 0 1px 2px rgba(29, 23, 18, 0.06);
+  --shadow-lift: 0 1px 1px rgba(29, 23, 18, 0.08), 0 6px 14px -4px rgba(140, 24, 19, 0.45);
   font-family: var(--sans);
   -webkit-text-size-adjust: 100%;
+}
+
+html {
+  /* Scales the whole interface gently with the screen. */
+  font-size: clamp(15px, 13px + 0.22vw, 17px);
 }
 
 * {
@@ -36,12 +52,18 @@ body {
     repeating-linear-gradient(0deg, rgba(90, 60, 30, 0.035) 0 1px, transparent 1px 3px),
     repeating-linear-gradient(90deg, rgba(90, 60, 30, 0.03) 0 1px, transparent 1px 4px);
   overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
 input {
   font: inherit;
   color: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .sr-only {
@@ -55,27 +77,59 @@ input {
 
 .app {
   display: grid;
-  grid-template-rows: auto auto auto minmax(300px, 1fr) auto auto;
+  grid-template-areas: 'top' 'vez' 'info' 'stage' 'panel';
+  grid-template-rows: auto auto auto minmax(260px, 1fr) auto;
   /* minmax(0, …) stops the scrolling chord row from widening the page. */
   grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
-  max-width: 1360px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
     max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   gap: 8px;
 }
 
+/* ---- Entrance: the parts of the page arrive one after another, once. --------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.top,
+.vez,
+.info,
+.stage,
+.panel {
+  animation: rise 0.6s var(--ease-out) both;
+}
+
+.vez {
+  animation-delay: 60ms;
+}
+.info {
+  animation-delay: 120ms;
+}
+.stage {
+  animation-delay: 160ms;
+}
+.panel {
+  animation-delay: 260ms;
+}
+
 /* ---- Header ---------------------------------------------------------------------- */
 
 .top {
+  grid-area: top;
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
     'brand actions'
     'tabs tabs';
-  align-items: end;
-  gap: 10px 16px;
+  align-items: center;
+  gap: 6px 16px;
 }
 
 .brand {
@@ -89,10 +143,10 @@ input {
 .brand h1 {
   margin: 0;
   font-family: var(--serif);
-  font-weight: 600;
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  font-weight: 650;
+  font-size: clamp(1.6rem, 1.1rem + 1.4vw, 2.3rem);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   font-variation-settings: 'opsz' 144;
 }
 
@@ -110,26 +164,39 @@ input {
 .top-actions {
   grid-area: actions;
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .instruments {
   grid-area: tabs;
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 1px solid var(--rule);
 }
 
-@media (min-width: 960px) {
+/* One underline that slides to the selected tab. */
+.instruments::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 25%;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--red);
+  transform: translateX(calc(var(--active, 0) * 100%));
+  transition: transform 0.38s var(--ease-out);
+}
+
+@media (min-width: 900px) {
   .top {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(max-content, 1fr) minmax(420px, 640px) minmax(0, 1fr);
     grid-template-areas: 'brand tabs actions';
   }
 
-  .instruments {
-    max-width: 620px;
-    width: 100%;
-    justify-self: center;
+  .top-actions {
+    justify-self: end;
   }
 }
 
@@ -138,16 +205,13 @@ input {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 6px 4px 8px;
+  min-height: 44px;
+  padding: 6px 4px 9px;
   border: 0;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -1px;
   background: none;
   color: var(--ink-soft);
   cursor: pointer;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
+  transition: color 0.2s;
 }
 
 .instruments .name {
@@ -156,10 +220,11 @@ input {
   font-weight: 500;
   line-height: 1.1;
   white-space: nowrap;
+  transition: font-weight 0.2s;
 }
 
 .instruments .alias {
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -171,15 +236,15 @@ input {
 
 .instruments button[aria-pressed='true'] {
   color: var(--ink);
-  border-bottom-color: var(--red);
 }
 
 .instruments button[aria-pressed='true'] .name {
-  font-weight: 600;
+  font-weight: 650;
 }
 
 /* A band of cross-stitch, as on Slavonian embroidery. */
 .vez {
+  grid-area: vez;
   height: 12px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23b3221b'%3E%3Crect x='10' y='0' width='4' height='2'/%3E%3Crect x='8' y='2' width='2' height='2'/%3E%3Crect x='14' y='2' width='2' height='2'/%3E%3Crect x='6' y='4' width='2' height='4'/%3E%3Crect x='16' y='4' width='2' height='4'/%3E%3Crect x='8' y='8' width='2' height='2'/%3E%3Crect x='14' y='8' width='2' height='2'/%3E%3Crect x='10' y='10' width='4' height='2'/%3E%3C/g%3E%3Cg fill='%231d1712'%3E%3Crect x='11' y='5' width='2' height='2'/%3E%3Crect x='0' y='5' width='2' height='2'/%3E%3Crect x='22' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23b8892f'%3E%3Crect x='3' y='5' width='1' height='2'/%3E%3Crect x='20' y='5' width='1' height='2'/%3E%3C/g%3E%3C/svg%3E");
   background-repeat: repeat-x;
@@ -188,11 +253,13 @@ input {
 }
 
 .info {
+  grid-area: info;
   margin: 0;
   text-align: center;
   font-family: var(--serif);
   font-size: 0.98rem;
   color: var(--ink-soft);
+  text-wrap: balance;
 }
 
 .info em {
@@ -209,6 +276,7 @@ input {
 /* ---- Stage ----------------------------------------------------------------------- */
 
 .stage {
+  grid-area: stage;
   position: relative;
   min-height: 0;
 }
@@ -227,11 +295,11 @@ canvas {
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 6px;
-  transform: translateX(-50%);
+  bottom: 8px;
+  translate: -50% 0;
   margin: 0;
-  padding: 5px 12px;
-  border-radius: 2px;
+  padding: 7px 14px;
+  border-radius: 999px;
   background: var(--ink);
   color: var(--paper);
   font-size: 0.7rem;
@@ -239,15 +307,37 @@ canvas {
   text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
-  transition: opacity 0.4s;
+  box-shadow: 0 8px 20px -8px rgba(29, 23, 18, 0.6);
+  transition:
+    opacity 0.35s var(--ease-out),
+    translate 0.35s var(--ease-out);
 }
 
 .hint[hidden] {
   display: block;
   opacity: 0;
+  translate: -50% 8px;
 }
 
-/* ---- Chords ---------------------------------------------------------------------- */
+/* ---- Panel: chords and controls -------------------------------------------------- */
+
+.panel {
+  grid-area: panel;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
 .chord-row {
   display: flex;
@@ -260,8 +350,8 @@ canvas {
 
 .chord-row button {
   flex: 0 0 auto;
-  min-width: 52px;
-  min-height: 52px;
+  min-width: var(--tile);
+  min-height: var(--tile);
   padding: 4px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--rule);
@@ -272,25 +362,27 @@ canvas {
   cursor: pointer;
   position: relative;
   touch-action: manipulation;
-  box-shadow: 0 1px 0 rgba(29, 23, 18, 0.06);
+  box-shadow: var(--shadow-tile);
   transition:
-    background-color 0.12s,
-    color 0.12s,
-    transform 0.08s;
+    background-color 0.18s var(--ease-out),
+    color 0.18s var(--ease-out),
+    border-color 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out),
+    transform 0.12s var(--ease-out);
 }
 
 .chord-row button:hover {
-  border-color: rgba(29, 23, 18, 0.35);
+  border-color: rgba(29, 23, 18, 0.32);
 }
 
 .chord-row button:active {
-  transform: translateY(1px);
+  transform: scale(0.95);
 }
 
 .chord-row button.none {
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -300,6 +392,7 @@ canvas {
   background: var(--red);
   color: var(--paper);
   border-color: var(--red);
+  box-shadow: var(--shadow-lift);
 }
 
 .chord-row button kbd {
@@ -312,16 +405,14 @@ canvas {
   opacity: 0.5;
 }
 
-/* ---- Controls -------------------------------------------------------------------- */
-
 .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 18px;
+  gap: 6px 16px;
   padding-top: 8px;
   border-top: 1px solid var(--rule);
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   color: var(--ink-soft);
 }
 
@@ -336,58 +427,94 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
-  min-width: 104px;
-  padding: 6px 18px;
+  min-height: 44px;
+  min-width: 112px;
+  padding: 6px 20px;
   border: 0;
   border-radius: var(--radius);
   background: var(--red);
   color: var(--paper);
   font-family: var(--serif);
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  box-shadow: inset 0 -2px 0 var(--red-deep);
+  box-shadow:
+    inset 0 -2px 0 var(--red-deep),
+    0 6px 14px -6px rgba(140, 24, 19, 0.55);
+  transition:
+    background-color 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out),
+    transform 0.12s var(--ease-out);
 }
 
 .play:hover {
   background: var(--red-deep);
 }
 
+.play:active {
+  transform: scale(0.97);
+}
+
+/* While the band plays: an ink button with a beating red light. */
 .play[aria-pressed='true'] {
   background: var(--ink);
-  box-shadow: none;
+  box-shadow: 0 6px 14px -6px rgba(29, 23, 18, 0.6);
+}
+
+.play[aria-pressed='true']::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2483f;
+  animation: beat 0.47s ease-out infinite;
+}
+
+@keyframes beat {
+  0% {
+    box-shadow: 0 0 0 0 rgba(226, 72, 63, 0.7);
+    transform: scale(1.15);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(226, 72, 63, 0);
+    transform: scale(1);
+  }
 }
 
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 36px;
+  gap: 8px;
+  min-height: 40px;
   cursor: pointer;
+  user-select: none;
 }
 
 /* Square check boxes, like a stitch. */
 .toggle input {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
   margin: 0;
   border: 1.5px solid var(--ink);
-  border-radius: 2px;
+  border-radius: 3px;
   background: var(--paper);
   display: grid;
   place-content: center;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 
 .toggle input::before {
   content: '';
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 1px;
   background: var(--red);
   transform: scale(0);
-  transition: transform 0.12s;
+  transition: transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
 .toggle input:checked::before {
@@ -397,13 +524,82 @@ canvas {
 .volume {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  gap: 10px;
+  min-height: 40px;
 }
 
 .volume input {
-  width: 110px;
+  width: 120px;
   accent-color: var(--red);
+}
+
+/* The settings button opens a popover on narrow screens. */
+.settings-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-tile);
+  transition:
+    border-color 0.18s,
+    transform 0.12s var(--ease-out);
+}
+
+.settings-btn:hover {
+  border-color: rgba(29, 23, 18, 0.32);
+}
+
+.settings-btn:active {
+  transform: scale(0.94);
+}
+
+.settings {
+  position: fixed;
+  inset: auto max(14px, env(safe-area-inset-right)) calc(max(10px, env(safe-area-inset-bottom)) + 64px) auto;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+  padding: 10px 16px;
+  border: 0;
+  border-top: 4px solid var(--red);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.92rem;
+  box-shadow:
+    0 2px 4px rgba(29, 23, 18, 0.08),
+    0 18px 40px -10px rgba(40, 20, 5, 0.35);
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 0.2s var(--ease-out),
+    translate 0.24s var(--ease-out),
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+
+.settings:not(:popover-open) {
+  opacity: 0;
+  translate: 0 8px;
+}
+
+@starting-style {
+  .settings:popover-open {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.settings .volume {
+  justify-content: space-between;
 }
 
 /* Key labels are for physical keyboards only. */
@@ -415,16 +611,21 @@ canvas {
 }
 
 .chip {
-  min-height: 32px;
+  min-height: 40px;
+  min-width: 40px;
   padding: 4px 10px;
   border: 0;
-  border-radius: 2px;
+  border-radius: 999px;
   background: none;
   cursor: pointer;
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
+  transition:
+    background-color 0.18s,
+    color 0.18s,
+    transform 0.12s var(--ease-out);
 }
 
 .chip:hover {
@@ -432,9 +633,14 @@ canvas {
   background: var(--linen-deep);
 }
 
+.chip:active {
+  transform: scale(0.95);
+}
+
 .chip.primary {
   background: var(--ink);
   color: var(--paper);
+  padding-inline: 18px;
 }
 
 button:focus-visible,
@@ -450,22 +656,58 @@ dialog {
   max-height: calc(100dvh - 32px);
   border: 0;
   border-top: 6px solid var(--red);
-  border-radius: 2px;
+  border-radius: 4px;
   background: var(--paper);
   color: var(--ink);
-  padding: 22px 24px;
-  line-height: 1.5;
-  box-shadow: 0 24px 60px rgba(40, 20, 5, 0.25);
+  padding: 22px 26px;
+  line-height: 1.55;
+  box-shadow:
+    0 2px 6px rgba(29, 23, 18, 0.08),
+    0 30px 70px -20px rgba(40, 20, 5, 0.45);
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity 0.22s var(--ease-out),
+    translate 0.28s var(--ease-out),
+    display 0.28s allow-discrete,
+    overlay 0.28s allow-discrete;
+}
+
+dialog[open] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    translate: 0 12px;
+  }
 }
 
 dialog::backdrop {
+  background: rgba(29, 23, 18, 0);
+  transition:
+    background-color 0.25s,
+    display 0.28s allow-discrete,
+    overlay 0.28s allow-discrete;
+}
+
+dialog[open]::backdrop {
   background: rgba(29, 23, 18, 0.45);
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    background: rgba(29, 23, 18, 0);
+  }
 }
 
 dialog h2 {
   margin-top: 0;
   font-family: var(--serif);
   font-weight: 600;
+  text-wrap: balance;
 }
 
 dialog h3 {
@@ -481,6 +723,119 @@ dialog ul {
   margin-top: 4px;
 }
 
+dialog li,
+dialog p {
+  text-wrap: pretty;
+}
+
+/* ---- Rail layout: wide screens -------------------------------------------------- */
+
+@media (min-width: 1000px) and (min-height: 600px) {
+  .app {
+    --rail: clamp(236px, 17vw, 292px);
+    grid-template-areas:
+      'top top'
+      'vez vez'
+      'info panel'
+      'stage panel';
+    grid-template-columns: minmax(0, 1fr) var(--rail);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 10px 24px;
+    padding-inline: max(24px, env(safe-area-inset-left));
+    padding-bottom: 18px;
+  }
+
+  .panel {
+    gap: 14px;
+    padding: 4px 0 4px 22px;
+    border-left: 1px solid var(--rule);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .panel-label {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    margin: 0 0 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .chord-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0;
+  }
+
+  .chord-row button {
+    min-width: 0;
+    padding: 4px;
+  }
+
+  .chord-row button.none {
+    grid-column: 1 / -1;
+    min-height: 40px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding-top: 14px;
+  }
+
+  .band {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .play {
+    width: 100%;
+    min-height: 50px;
+    font-size: 1.15rem;
+  }
+
+  /* There is room for the settings, so they sit in the rail. */
+  .settings-btn {
+    display: none;
+  }
+
+  .settings:not(:popover-open) {
+    position: static;
+    display: flex;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    font-size: inherit;
+    color: inherit;
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+
+  .settings .volume input {
+    width: auto;
+    flex: 1;
+  }
+}
+
+/* The tagline only where it fits beside the tabs. */
+@media (min-width: 900px) and (max-width: 1239px) {
+  .tagline {
+    display: none;
+  }
+}
+
 /* ---- Small screens --------------------------------------------------------------- */
 
 @media (max-width: 480px) {
@@ -492,16 +847,17 @@ dialog ul {
     display: none;
   }
 
-  .brand h1 {
-    font-size: 1.5rem;
-  }
-
   .instruments button {
-    padding: 4px 2px 6px;
+    padding: 4px 2px 7px;
   }
 
   .instruments .name {
-    font-size: 0.95rem;
+    font-size: 0.98rem;
+  }
+
+  .instruments .alias {
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
   }
 
   .hint {
@@ -512,33 +868,36 @@ dialog ul {
     font-size: 0.6rem;
   }
 
-  .instruments .alias {
-    font-size: 0.58rem;
-    letter-spacing: 0.06em;
-  }
-
   .info {
     font-size: 0.86rem;
   }
 
-  .volume span {
-    display: none;
-  }
-
   .controls {
     gap: 4px 12px;
+    flex-wrap: nowrap;
   }
 
-  .volume input {
-    width: 80px;
+  .play {
+    min-width: 96px;
+    padding-inline: 14px;
+  }
+
+  .band {
+    gap: 10px;
   }
 }
 
-/* Phones in landscape: one header row, everything on one screen. */
-@media (max-height: 520px) and (orientation: landscape) {
+/* ---- Rail layout: phones in landscape -------------------------------------------- */
+
+@media (orientation: landscape) and (max-height: 599px) and (min-width: 560px) {
   .app {
-    grid-template-rows: auto minmax(160px, 1fr) auto auto;
-    gap: 4px;
+    grid-template-areas:
+      'top panel'
+      'stage panel';
+    grid-template-columns: minmax(0, 1fr) clamp(176px, 28vw, 230px);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 4px 12px;
+    padding-block: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-bottom));
   }
 
   .top {
@@ -548,24 +907,84 @@ dialog ul {
 
   .brand,
   .info,
-  .vez {
-    display: none;
-  }
-
+  .vez,
   .instruments .alias {
     display: none;
   }
 
+  .instruments button {
+    min-height: 38px;
+    padding: 4px 2px 7px;
+  }
+
+  .panel {
+    gap: 6px;
+    padding-left: 12px;
+    border-left: 1px solid var(--rule);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .chord-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    overflow: visible;
+    padding: 0;
+  }
+
   .chord-row button {
+    min-width: 0;
     min-height: 42px;
+    padding: 2px;
+    font-size: 1.05rem;
+  }
+
+  .chord-row button.none {
+    grid-column: 1 / -1;
+    min-height: 34px;
   }
 
   .controls {
-    flex-wrap: nowrap;
-    padding-top: 4px;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding-top: 6px;
+  }
+
+  .band {
+    flex: 1 1 100%;
+    gap: 10px;
+  }
+
+  .play {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    padding-inline: 10px;
+    font-size: 0.98rem;
   }
 
   .toggle {
-    min-height: 28px;
+    min-height: 34px;
+  }
+
+  .settings-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .settings {
+    inset: auto max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) auto;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

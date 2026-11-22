@@ -66,7 +66,9 @@ export function computeGeometry(width: number, height: number, courses: number, 
   // Strings far enough apart for a fingertip, but a neck narrow enough that the body
   // shows clearly wider than it, as on a real tambura.
   // On a phone that means about 48 px per string, still above the 44 px touch minimum.
-  const spacing = Math.min(64, ((W - pad * 2) / courses) * 0.84, Math.max(46, (W * 0.52) / courses));
+  // Bigger screens get a bigger instrument: up to 84 px per string.
+  const maxSpacing = clamp(W * 0.095, 56, 84);
+  const spacing = Math.min(maxSpacing, ((W - pad * 2) / courses) * 0.84, Math.max(46, (W * 0.52) / courses));
   const neckWidth = spacing * courses;
   const neckMin = (W - neckWidth) / 2;
   const strings = Array.from({ length: courses }, (_, i) => neckMin + spacing * (i + 0.5));

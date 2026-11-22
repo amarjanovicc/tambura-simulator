@@ -133,6 +133,12 @@ The canvas draws the neck horizontally on wide screens and vertically on portrai
 Short screens show fewer frets, but never fewer than five, since every chord shape fits in the first five.
 It works from 320 px wide, in portrait and in landscape.
 
+On wide screens and on phones in landscape, the chords and controls sit in a rail on the right, so the
+instrument gets the full height. In portrait they sit below it, and the rarer settings (note names, key
+labels, volume) open from the ⚙ button. The string spacing grows with the screen, up to 84 px. Animations
+(the sliding tab underline, the instrument switch, button presses, the pulsing light while the band plays)
+are switched off under `prefers-reduced-motion`.
+
 The instruments are drawn after photos of Srijem instruments
 ([`src/view/instrument-art.ts`](src/view/instrument-art.ts)): the prim and bas-prim are pears that flow
 into the neck, the prim with rows of small sound holes around a lobed tortoiseshell pickguard; the kontra
