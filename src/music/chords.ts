@@ -22,20 +22,23 @@ const chord = (id: string, root: number, intervals: number[], hr: string, en: st
   label: { hr, en },
 });
 
-/** A palette that covers the usual tamburica keys (D, A, G, E and their relatives). */
+/**
+ * A palette for the keys Slavonian bands play in with the E tuning (E, A, H and their
+ * relatives). The first nine are on Shift+1…9.
+ */
 export const CHORDS: readonly ChordDef[] = [
-  chord('D', 2, MAJOR, 'D', 'D'),
-  chord('A', 9, MAJOR, 'A', 'A'),
-  chord('A7', 9, DOM7, 'A7', 'A7'),
-  chord('G', 7, MAJOR, 'G', 'G'),
   chord('E', 4, MAJOR, 'E', 'E'),
-  chord('E7', 4, DOM7, 'E7', 'E7'),
-  chord('Hm', 11, MINOR, 'Hm', 'Bm'),
+  chord('A', 9, MAJOR, 'A', 'A'),
   chord('H7', 11, DOM7, 'H7', 'B7'),
+  chord('E7', 4, DOM7, 'E7', 'E7'),
+  chord('H', 11, MAJOR, 'H', 'B'),
   chord('Fism', 6, MINOR, 'Fism', 'F#m'),
-  chord('Em', 4, MINOR, 'Em', 'Em'),
+  chord('Cism', 1, MINOR, 'Cism', 'C#m'),
+  chord('D', 2, MAJOR, 'D', 'D'),
+  chord('A7', 9, DOM7, 'A7', 'A7'),
+  chord('Hm', 11, MINOR, 'Hm', 'Bm'),
+  chord('G', 7, MAJOR, 'G', 'G'),
   chord('D7', 2, DOM7, 'D7', 'D7'),
-  chord('C', 0, MAJOR, 'C', 'C'),
 ];
 
 /** Fret per course, low to high. `null` means the course is not played. */

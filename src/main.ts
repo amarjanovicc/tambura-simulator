@@ -4,9 +4,9 @@ import { AudioEngine } from './audio/engine';
 import { type Lang, t } from './i18n';
 import { Controller } from './input/controller';
 import { CHORDS } from './music/chords';
-import { INSTRUMENTS, type InstrumentId, getInstrument } from './music/instruments';
+import { INSTRUMENTS, type InstrumentId, getInstrument, resolveInstrumentId } from './music/instruments';
 import { noteName } from './music/notes';
-import { KOLO_D } from './music/songs';
+import { KOLO_E } from './music/songs';
 import { Player } from './player';
 import { Renderer } from './view/renderer';
 
@@ -26,7 +26,7 @@ function loadPrefs(): Prefs {
   const browserLang: Lang = /^(hr|bs|sr|sh)/i.test(navigator.language) ? 'hr' : 'en';
   const defaults: Prefs = {
     lang: browserLang,
-    instrument: 'bisernica',
+    instrument: 'prim',
     tremolo: false,
     showNotes: true,
     showKeys: false,
@@ -35,7 +35,10 @@ function loadPrefs(): Prefs {
   };
   try {
     const saved = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Partial<Prefs>;
-    return { ...defaults, ...saved };
+    const merged = { ...defaults, ...saved };
+    // Saved before the switch to the Srijem names (e.g. "bisernica").
+    merged.instrument = resolveInstrumentId(merged.instrument) ?? defaults.instrument;
+    return merged;
   } catch {
     return defaults;
   }
@@ -57,7 +60,8 @@ const $ = <T extends HTMLElement>(id: string): T => {
 
 const prefs = loadPrefs();
 const hashId = location.hash.slice(1);
-if (INSTRUMENTS.some((i) => i.id === hashId)) prefs.instrument = hashId as InstrumentId;
+const fromHash = resolveInstrumentId(hashId);
+if (fromHash) prefs.instrument = fromHash;
 
 const engine = new AudioEngine();
 engine.setVolume(prefs.volume);
@@ -103,7 +107,7 @@ bandBtn.addEventListener('click', () => {
   if (band.playing) band.stop();
   else {
     band.setMuted(mutedSet());
-    band.play(KOLO_D);
+    band.play(KOLO_E);
   }
   renderBandButton();
 });
@@ -170,7 +174,7 @@ function renderInfo(): void {
   name.textContent = inst.name[prefs.lang];
   const role = document.createElement('span');
   role.className = 'role';
-  role.textContent = ` · ${inst.role[prefs.lang]}`;
+  role.textContent = ` (${inst.alias[prefs.lang]}) · ${inst.role[prefs.lang]}`;
   info.append(name, role, ` · ${s.eSystem}: ${tuning}`);
 }
 

@@ -5,32 +5,31 @@ import { renderPluck } from './karplus';
 
 const SR = 48000;
 
-/** Estimates the fundamental with normalised autocorrelation and parabolic interpolation. */
+/**
+ * Finds the frequency of the strongest spectral peak within ±40 cents of `expected`
+ * (a fine DFT scan). This measures the fundamental itself: a stiff string's upper
+ * partials run sharp on purpose, which would bias an autocorrelation estimate.
+ */
 function estimatePitch(x: Float32Array, sr: number, expected: number): number {
-  const start = Math.floor(0.15 * sr);
-  const size = Math.floor(0.25 * sr);
-  const seg = x.subarray(start, start + size);
-  const minLag = Math.floor(sr / (expected * 1.2));
-  const maxLag = Math.ceil(sr / (expected / 1.2));
-  const r = (lag: number): number => {
-    let s = 0;
-    for (let i = 0; i + lag < seg.length; i++) s += (seg[i] ?? 0) * (seg[i + lag] ?? 0);
-    return s;
-  };
-  let best = minLag;
-  let bestR = -Infinity;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    const v = r(lag);
-    if (v > bestR) {
-      bestR = v;
-      best = lag;
+  const seg = x.subarray(Math.floor(0.05 * sr), Math.floor(0.65 * sr));
+  let best = expected;
+  let bestMag = -1;
+  for (let c = -40; c <= 40; c += 0.25) {
+    const f = expected * 2 ** (c / 1200);
+    let re = 0;
+    let im = 0;
+    for (let n = 0; n < seg.length; n += 2) {
+      const ph = (2 * Math.PI * f * n) / sr;
+      re += (seg[n] ?? 0) * Math.cos(ph);
+      im -= (seg[n] ?? 0) * Math.sin(ph);
+    }
+    const mag = re * re + im * im;
+    if (mag > bestMag) {
+      bestMag = mag;
+      best = f;
     }
   }
-  const a = r(best - 1);
-  const b = bestR;
-  const c = r(best + 1);
-  const shift = (a - c) / (2 * (a - 2 * b + c));
-  return sr / (best + shift);
+  return best;
 }
 
 const cents = (f: number, ref: number): number => 1200 * Math.log2(f / ref);
@@ -50,6 +49,8 @@ describe('renderPluck', () => {
             brightness: inst.tone.brightness,
             pickPosition: inst.tone.pickPosition,
             click: inst.tone.click,
+            inharmonicity: inst.tone.inharmonicity,
+            promptShare: inst.tone.promptShare,
             seed: 1,
           });
           expect(Math.abs(cents(estimatePitch(buf, SR, freq), freq))).toBeLessThan(3);
@@ -57,6 +58,41 @@ describe('renderPluck', () => {
       }
     }
   }
+
+  it('inharmonicity puts upper partials where a stiff string has them', () => {
+    const partialCents = (inharmonicity: number): number => {
+      const f0 = midiToFreq(64);
+      const buf = renderPluck({
+        sampleRate: SR, freq: f0, t60: 2, loopDamping: 0.2, brightness: 0.9,
+        pickPosition: 0.11, click: 0, inharmonicity, seed: 3,
+      });
+      const seg = buf.subarray(Math.floor(0.05 * SR), Math.floor(0.55 * SR));
+      const k = 8; // 8th partial
+      let best = 0;
+      let bestMag = -1;
+      for (let c = -20; c <= 60; c += 0.5) {
+        const f = k * f0 * 2 ** (c / 1200);
+        let re = 0;
+        let im = 0;
+        for (let n = 0; n < seg.length; n++) {
+          const ph = (2 * Math.PI * f * n) / SR;
+          re += (seg[n] ?? 0) * Math.cos(ph);
+          im -= (seg[n] ?? 0) * Math.sin(ph);
+        }
+        const mag = re * re + im * im;
+        if (mag > bestMag) {
+          bestMag = mag;
+          best = c;
+        }
+      }
+      return best;
+    };
+    const B = 3e-4;
+    // Theory: partial 8 sits 1200·log2(sqrt(1 + B·64)) ≈ 11 cents sharp.
+    const expected = 1200 * Math.log2(Math.sqrt(1 + B * 64));
+    expect(Math.abs(partialCents(0))).toBeLessThan(2);
+    expect(Math.abs(partialCents(B) - expected)).toBeLessThan(4);
+  });
 
   it('decays and never clips', () => {
     const buf = renderPluck({

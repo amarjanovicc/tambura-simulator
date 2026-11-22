@@ -9,8 +9,8 @@ export interface SongBar {
 }
 
 /**
- * A tune in 2/4 for the whole band. The melody is written for the bisernica; the other
- * parts (brač second voice, bugarija off-beats, berde bass) are derived in `arrange.ts`.
+ * A tune in 2/4 for the whole band. The melody is written for the prim; the other
+ * parts (bas-prim second voice, kontra off-beats, berde bass) are derived in `arrange.ts`.
  */
 export interface Song {
   id: string;
@@ -26,25 +26,28 @@ export interface Song {
   ending: { chord: string; note: number; beats: number };
 }
 
-/** An original kolo in D major in a Slavonian style (not a traditional tune). */
-export const KOLO_D: Song = {
-  id: 'kolo-d',
-  title: { hr: 'Kolo u D-duru', en: 'Kolo in D major' },
+/**
+ * An original kolo in E major in a Slavonian style (not a traditional tune). E is home
+ * for the Srijem E tuning: the kontra's open strings are the tonic chord.
+ */
+export const KOLO_E: Song = {
+  id: 'kolo-e',
+  title: { hr: 'Kolo u E-duru', en: 'Kolo in E major' },
   bpm: 128,
-  tonic: 2,
+  tonic: 4,
   introBars: 2,
   repeats: 2,
   bars: [
-    { chord: 'D', melody: [[81, 1], [78, 1], [81, 1], [78, 1]] },
-    { chord: 'D', melody: [[76, 1], [78, 1], [79, 1], [78, 1]] },
-    { chord: 'A7', melody: [[76, 1], [79, 1], [76, 1], [73, 1]] },
-    { chord: 'D', melody: [[74, 4, true]] },
-    { chord: 'D', melody: [[78, 1], [81, 1], [86, 1], [81, 1]] },
-    { chord: 'G', melody: [[83, 1], [79, 1], [83, 1], [86, 1]] },
-    { chord: 'A7', melody: [[85, 1], [83, 1], [81, 1], [79, 1]] },
-    { chord: 'D', melody: [[78, 1], [76, 1], [74, 2, true]] },
+    { chord: 'E', melody: [[83, 1], [80, 1], [83, 1], [80, 1]] },
+    { chord: 'E', melody: [[78, 1], [80, 1], [81, 1], [80, 1]] },
+    { chord: 'H7', melody: [[78, 1], [81, 1], [78, 1], [75, 1]] },
+    { chord: 'E', melody: [[76, 4, true]] },
+    { chord: 'E', melody: [[80, 1], [83, 1], [88, 1], [83, 1]] },
+    { chord: 'A', melody: [[85, 1], [81, 1], [85, 1], [88, 1]] },
+    { chord: 'H7', melody: [[87, 1], [85, 1], [83, 1], [81, 1]] },
+    { chord: 'E', melody: [[80, 1], [78, 1], [76, 2, true]] },
   ],
-  ending: { chord: 'D', note: 86, beats: 1.5 },
+  ending: { chord: 'E', note: 88, beats: 1.5 },
 };
 
-export const SONGS: readonly Song[] = [KOLO_D];
+export const SONGS: readonly Song[] = [KOLO_E];

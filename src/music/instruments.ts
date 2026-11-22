@@ -1,6 +1,13 @@
 import type { Lang } from '../i18n';
 
-export type InstrumentId = 'bisernica' | 'brac' | 'bugarija' | 'berde';
+export type InstrumentId = 'prim' | 'basprim' | 'kontra' | 'berde';
+
+/** Old ids (before the switch to the Srijem names) still work in links like `#bisernica`. */
+export const INSTRUMENT_ALIASES: Record<string, InstrumentId> = {
+  bisernica: 'prim',
+  brac: 'basprim',
+  bugarija: 'kontra',
+};
 
 /** One course: a single string or a pair tuned in unison. */
 export interface Course {
@@ -8,7 +15,7 @@ export interface Course {
   doubled: boolean;
 }
 
-/** Sound-design parameters for the Karplus-Strong voice and the body filters. */
+/** Sound-design parameters for the string model and the body. */
 export interface ToneParams {
   /** Seconds to decay by 60 dB for the lowest and highest note of the instrument. */
   t60Low: number;
@@ -23,7 +30,18 @@ export interface ToneParams {
   click: number;
   /** Cents between the two strings of a doubled course. */
   courseDetune: number;
-  /** Body resonances: [frequency Hz, Q, gain dB]. */
+  /**
+   * Inharmonicity coefficient B: upper partials run sharp, the metallic edge of steel
+   * strings. From B = π³·E·d⁴ / (64·T·L²) for steel (E = 200 GPa) with typical gauges and
+   * scale lengths, e.g. the prim's e2 string (0.25 mm, 35 cm, ~82 N) gives B ≈ 4e-5.
+   */
+  inharmonicity: number;
+  /**
+   * Share of the sound that dies away quickly. A plucked string vibrates in two planes
+   * that decay at different rates: a bright "prompt" sound, then a softer aftersound.
+   */
+  promptShare: number;
+  /** Body modes (air cavity and top plate): [frequency Hz, Q, boost dB]. */
   body: ReadonlyArray<readonly [number, number, number]>;
   highpass: number;
   gain: number;
@@ -32,13 +50,15 @@ export interface ToneParams {
 export interface InstrumentDef {
   id: InstrumentId;
   name: Record<Lang, string>;
+  /** The other common name (Farkaš/orchestra naming). */
+  alias: Record<Lang, string>;
   role: Record<Lang, string>;
   /** Low to high. */
   courses: readonly Course[];
   visibleFrets: number;
   /** "full" strums every course, "bass" plays one root note (berde). */
   chordStyle: 'full' | 'bass';
-  /** Visual: small holes (bisernica) or one round sound hole. */
+  /** Visual: small holes (prim) or one round sound hole. */
   soundHole: 'holes' | 'round' | 'f-holes';
   bodyColor: string;
   tone: ToneParams;
@@ -47,97 +67,119 @@ export interface InstrumentDef {
 const c = (midi: number, doubled = false): Course => ({ midi, doubled });
 
 /**
- * E system (Farkaš) tunings. Sources disagree on details and players vary, so every
- * tuning lives here and nowhere else. MIDI 60 = C4 (c1 in Croatian notation).
+ * Srijem E tuning (srijemski E-štim), as played by Slavonian tamburica bands.
+ * Every tuning lives here and nowhere else. MIDI 60 = C4 (c1 in Croatian notation).
+ *
+ * Body modes: the prim's air and wood modes (~340 Hz and ~740 Hz) are measured values;
+ * the other instruments scale them by body size, with plate modes placed like those of
+ * guitar-family instruments. Strings are steel; bass strings are wound.
  */
 export const INSTRUMENTS: readonly InstrumentDef[] = [
   {
-    id: 'bisernica',
-    name: { hr: 'Bisernica', en: 'Bisernica' },
+    id: 'prim',
+    name: { hr: 'Prim', en: 'Prim' },
+    alias: { hr: 'bisernica', en: 'bisernica' },
     role: { hr: 'vodeća melodija', en: 'lead melody' },
-    // cis1 – fis1 – h1 – e2 (e2 doubled)
+    // cis1 – fis1 – h1 – e2 (e2 doubled): 5 strings
     courses: [c(61), c(66), c(71), c(76, true)],
     visibleFrets: 12,
     chordStyle: 'full',
     soundHole: 'holes',
     bodyColor: '#d9a35b',
     tone: {
-      t60Low: 2.6,
-      t60High: 1.5,
-      loopDamping: 0.22,
-      brightness: 0.85,
-      pickPosition: 0.12,
-      click: 0.35,
+      t60Low: 2.8,
+      t60High: 1.7,
+      loopDamping: 0.18,
+      brightness: 0.9,
+      pickPosition: 0.11,
+      click: 0.4,
       courseDetune: 4,
-      // Air and wood modes measured on a bisernica: ~340 Hz and ~740 Hz.
+      inharmonicity: 6e-5,
+      promptShare: 0.55,
       body: [
-        [340, 2.2, 4],
-        [740, 2.8, 3],
-        [2600, 1.2, 2],
+        [340, 16, 7],
+        [740, 22, 6],
+        [1150, 26, 3],
+        [1720, 26, 3],
+        [2600, 22, 3],
+        [3700, 18, 2],
       ],
-      highpass: 180,
-      gain: 0.9,
+      highpass: 230,
+      gain: 0.85,
     },
   },
   {
-    id: 'brac',
-    name: { hr: 'Brač', en: 'Brač' },
-    role: { hr: 'melodija i druga dionica', en: 'melody and second voice' },
-    // cis – fis – h – e1 (e1 doubled), an octave below the bisernica
+    id: 'basprim',
+    name: { hr: 'Bas-prim', en: 'Bas-prim' },
+    alias: { hr: 'brač', en: 'brač' },
+    role: { hr: 'melodija i drugi glas', en: 'melody and second voice' },
+    // cis – fis – h – e1 (e1 doubled): an octave below the prim
     courses: [c(49), c(54), c(59), c(64, true)],
     visibleFrets: 12,
     chordStyle: 'full',
     soundHole: 'round',
     bodyColor: '#c98f4a',
     tone: {
-      t60Low: 3.4,
-      t60High: 2.0,
-      loopDamping: 0.26,
-      brightness: 0.75,
-      pickPosition: 0.13,
-      click: 0.3,
+      t60Low: 3.6,
+      t60High: 2.2,
+      loopDamping: 0.22,
+      brightness: 0.8,
+      pickPosition: 0.12,
+      click: 0.33,
       courseDetune: 3.5,
+      inharmonicity: 5e-5,
+      promptShare: 0.5,
       body: [
-        [220, 2, 4],
-        [480, 2.5, 3],
-        [2000, 1.2, 2],
+        [210, 16, 7],
+        [460, 22, 6],
+        [720, 26, 3],
+        [1070, 26, 3],
+        [1650, 22, 2.5],
+        [2500, 18, 2],
       ],
-      highpass: 90,
+      highpass: 110,
       gain: 1,
     },
   },
   {
-    id: 'bugarija',
-    name: { hr: 'Bugarija', en: 'Bugarija' },
+    id: 'kontra',
+    name: { hr: 'Kontra', en: 'Kontra' },
+    alias: { hr: 'bugarija', en: 'bugarija' },
     role: { hr: 'ritam i akordi', en: 'rhythm and chords' },
-    // d – a – d1 – fis1 (fis1 doubled): an open D major chord
-    courses: [c(50), c(57), c(62), c(66, true)],
+    // e – gis – h – e1 (e1 doubled): an open E major chord, 5 strings
+    courses: [c(52), c(56), c(59), c(64, true)],
     visibleFrets: 10,
     chordStyle: 'full',
     soundHole: 'round',
     bodyColor: '#b97c3c',
     tone: {
-      t60Low: 2.2,
-      t60High: 1.4,
-      loopDamping: 0.3,
-      brightness: 0.7,
-      pickPosition: 0.15,
-      click: 0.4,
+      t60Low: 2.4,
+      t60High: 1.6,
+      loopDamping: 0.26,
+      brightness: 0.75,
+      pickPosition: 0.14,
+      click: 0.45,
       courseDetune: 3,
+      inharmonicity: 6e-5,
+      promptShare: 0.5,
       body: [
-        [180, 2, 4],
-        [400, 2.5, 3],
-        [1800, 1.2, 1.5],
+        [150, 15, 7],
+        [330, 20, 6],
+        [520, 24, 3],
+        [800, 24, 3],
+        [1300, 20, 2],
+        [2200, 18, 1.5],
       ],
-      highpass: 80,
-      gain: 0.85,
+      highpass: 85,
+      gain: 0.8,
     },
   },
   {
     id: 'berde',
     name: { hr: 'Berde', en: 'Berde' },
+    alias: { hr: 'bas', en: 'bass' },
     role: { hr: 'bas', en: 'bass' },
-    // E1 – A1 – D2 – G2, like a double bass
+    // E1 – A1 – D – G, like a double bass
     courses: [c(28), c(33), c(38), c(43)],
     visibleFrets: 9,
     chordStyle: 'bass',
@@ -146,17 +188,21 @@ export const INSTRUMENTS: readonly InstrumentDef[] = [
     tone: {
       t60Low: 4.5,
       t60High: 3.2,
-      loopDamping: 0.42,
-      brightness: 0.45,
-      pickPosition: 0.2,
-      click: 0.25,
+      loopDamping: 0.38,
+      brightness: 0.55,
+      pickPosition: 0.18,
+      click: 0.3,
       courseDetune: 0,
+      inharmonicity: 2.5e-5,
+      promptShare: 0.45,
       body: [
-        [70, 1.6, 5],
-        [160, 2, 3],
-        [900, 1.5, 1],
+        [65, 12, 7],
+        [140, 15, 5],
+        [230, 18, 3],
+        [400, 18, 2],
+        [800, 15, 1],
       ],
-      highpass: 30,
+      highpass: 32,
       gain: 1.25,
     },
   },
@@ -166,4 +212,10 @@ export function getInstrument(id: InstrumentId): InstrumentDef {
   const found = INSTRUMENTS.find((i) => i.id === id);
   if (!found) throw new Error(`Unknown instrument ${id}`);
   return found;
+}
+
+/** Resolves an id or an old alias (`bisernica`, `brac`, `bugarija`). */
+export function resolveInstrumentId(value: string): InstrumentId | null {
+  if (INSTRUMENTS.some((i) => i.id === value)) return value as InstrumentId;
+  return INSTRUMENT_ALIASES[value] ?? null;
 }

@@ -41,17 +41,17 @@ export function thirdBelow(midi: number, tonic: number): number {
 
 /**
  * Turns a song into timed notes for the whole band:
- * - bisernica plays the melody, tremolo on long notes;
- * - brač plays a third below, an octave lower (the classic second voice);
- * - bugarija strums short chords on the off-beats ("ćuć");
+ * - prim plays the melody, tremolo on long notes;
+ * - bas-prim plays a third below, an octave lower (the classic second voice);
+ * - kontra strums short chords on the off-beats ("ćuć");
  * - berde plays root and fifth on the beats.
  */
 export function arrange(song: Song): { events: BandEvent[]; duration: number } {
   const beat = 60 / song.bpm;
   const eighth = beat / 2;
-  const bisernica = getInstrument('bisernica');
-  const brac = getInstrument('brac');
-  const bugarija = getInstrument('bugarija');
+  const prim = getInstrument('prim');
+  const basprim = getInstrument('basprim');
+  const kontra = getInstrument('kontra');
   const berde = getInstrument('berde');
   const events: BandEvent[] = [];
 
@@ -70,14 +70,14 @@ export function arrange(song: Song): { events: BandEvent[]; duration: number } {
   };
 
   const both = (midi: number, time: number, length: number, tremolo: boolean): void => {
-    melodyNote(bisernica, midi, time, length, tremolo, 1);
-    melodyNote(brac, thirdBelow(midi, song.tonic) - 12, time, length, tremolo, 0.85);
+    melodyNote(prim, midi, time, length, tremolo, 1);
+    melodyNote(basprim, thirdBelow(midi, song.tonic) - 12, time, length, tremolo, 0.85);
   };
 
   const rhythm = (chordId: string, time: number, last: boolean): void => {
     const chord = CHORDS.find((c) => c.id === chordId);
     if (!chord) throw new Error(`Unknown chord ${chordId}`);
-    const shape = findVoicing(bugarija, chord);
+    const shape = findVoicing(kontra, chord);
     const bass = findVoicing(berde, chord);
     const rootIndex = bass?.findIndex((f) => f !== null) ?? -1;
     if (!shape || !bass || rootIndex < 0) throw new Error(`No shape for ${chordId}`);
@@ -91,8 +91,8 @@ export function arrange(song: Song): { events: BandEvent[]; duration: number } {
     for (const at of strums) {
       shape.forEach((fret, course) => {
         if (fret === null) return;
-        const midi = bugarija.courses[course]!.midi + fret;
-        add(bugarija, midi, at + course * STRUM_S, last ? 0.8 : 0.7, last ? undefined : 0.15);
+        const midi = kontra.courses[course]!.midi + fret;
+        add(kontra, midi, at + course * STRUM_S, last ? 0.8 : 0.7, last ? undefined : 0.15);
       });
     }
   };

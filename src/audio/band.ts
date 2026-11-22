@@ -5,7 +5,7 @@ import type { AudioEngine } from './engine';
 
 const LOOKAHEAD_S = 0.3;
 const TICK_MS = 50;
-const PAN: Record<InstrumentId, number> = { bisernica: -0.25, brac: 0.25, bugarija: 0.12, berde: 0 };
+const PAN: Record<InstrumentId, number> = { prim: -0.25, basprim: 0.25, kontra: 0.12, berde: 0 };
 
 /**
  * Plays a song with the whole band. Notes are scheduled on the audio clock a little

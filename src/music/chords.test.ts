@@ -24,8 +24,8 @@ describe('voicings', () => {
     }
   });
 
-  it('bugarija plays D major on open strings', () => {
-    expect(findVoicing(getInstrument('bugarija'), CHORDS.find((c) => c.id === 'D')!)).toEqual([0, 0, 0, 0]);
+  it('kontra plays E major on open strings', () => {
+    expect(findVoicing(getInstrument('kontra'), CHORDS.find((c) => c.id === 'E')!)).toEqual([0, 0, 0, 0]);
   });
 
   it('berde plays one root note', () => {

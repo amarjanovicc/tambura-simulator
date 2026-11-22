@@ -186,6 +186,8 @@ export class AudioEngine {
       brightness: inst.tone.brightness,
       pickPosition: inst.tone.pickPosition + variant * 0.015,
       click: inst.tone.click,
+      inharmonicity: inst.tone.inharmonicity,
+      promptShare: inst.tone.promptShare,
       seed: midi * 31 + variant * 7919 + 1,
     });
     const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
@@ -195,7 +197,12 @@ export class AudioEngine {
     return buf;
   }
 
-  /** The instrument's body: high-pass and three resonances, created on first use. */
+  /**
+   * The instrument's body, created on first use: a high-pass (small bodies radiate little
+   * bass) and a convolution with the body's impulse response, built from its air and
+   * plate modes. Modes ring for a few tens of ms, which gives the woody colour that a
+   * plain EQ lacks.
+   */
   private body(inst: InstrumentDef): AudioNode {
     const existing = this.bodies.get(inst.id);
     if (existing) return existing;
@@ -205,16 +212,10 @@ export class AudioEngine {
     hp.type = 'highpass';
     hp.Q.value = 0.7;
     hp.frequency.value = inst.tone.highpass;
-    let node: AudioNode = input.connect(hp);
-    for (const [freq, q, gain] of inst.tone.body) {
-      const f = ctx.createBiquadFilter();
-      f.type = 'peaking';
-      f.frequency.value = freq;
-      f.Q.value = q;
-      f.gain.value = gain;
-      node = node.connect(f);
-    }
-    node.connect(this.mix);
+    const conv = ctx.createConvolver();
+    conv.normalize = false;
+    conv.buffer = makeBodyImpulse(ctx, inst.tone.body);
+    input.connect(hp).connect(conv).connect(this.mix);
     this.bodies.set(inst.id, input);
     return input;
   }
@@ -254,6 +255,30 @@ export class AudioEngine {
     silent.connect(ctx.destination);
     silent.start();
   }
+}
+
+/**
+ * Body impulse response: the direct sound plus one decaying sine per mode. A mode with
+ * quality factor Q at frequency f rings with time constant Q / (pi f); its amplitude is
+ * set so the response at f is boosted by the given number of dB.
+ */
+export function makeBodyImpulse(
+  ctx: BaseAudioContext,
+  modes: ReadonlyArray<readonly [number, number, number]>,
+): AudioBuffer {
+  const sr = ctx.sampleRate;
+  const longest = Math.max(0.02, ...modes.map(([f, q]) => (7 * q) / (Math.PI * f)));
+  const len = Math.floor(Math.min(0.5, longest) * sr);
+  const buf = ctx.createBuffer(1, len, sr);
+  const data = buf.getChannelData(0);
+  data[0] = 1;
+  for (const [f, q, db] of modes) {
+    const tau = q / (Math.PI * f);
+    const amp = ((10 ** (db / 20) - 1) * 2) / (tau * sr);
+    const w = (2 * Math.PI * f) / sr;
+    for (let n = 1; n < len; n++) data[n] = (data[n] ?? 0) + amp * Math.exp(-n / (tau * sr)) * Math.sin(w * n);
+  }
+  return buf;
 }
 
 /** A small wooden room: decaying stereo noise with the highs rolling off over time. */

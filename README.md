@@ -1,7 +1,7 @@
 # Tambura simulator
 
-Play the instruments of a tamburica band in the browser: **bisernica, brač, bugarija and berde**,
-tuned in the E system (Farkaš). Pluck single notes, press frets, strum chords with the mouse,
+Play the instruments of a Slavonian tamburica band in the browser: **prim, bas-prim, kontra and berde**,
+in the Srijem E tuning (srijemski E-štim). Pluck single notes, press frets, strum chords with the mouse,
 a finger or the keyboard. The sound is synthesised in real time, with no samples to download.
 
 Vite + TypeScript, no framework, no runtime dependencies (~12 kB gzipped).
@@ -27,7 +27,7 @@ To try it on a phone on the same Wi-Fi network, run `pnpm dev --host` and open t
 | Type check               | `pnpm typecheck`            |
 
 `dist/` is a static site with relative paths: host it anywhere (a Vercel static project, GitHub Pages,
-or a sub-path of the portfolio). Link to an instrument with a hash: `/#bugarija`.
+or a sub-path of the portfolio). Link to an instrument with a hash: `/#kontra` (the old names `#bisernica`, `#brac` and `#bugarija` still work).
 
 ## How to play
 
@@ -41,12 +41,12 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#bugarija`
 
 **Band (▶ Kolo)**
 
-- The whole band plays a short kolo in D major. It is an original tune in a Slavonian style:
-  bisernica melody with tremolo, brač a third below, bugarija off-beat "ćuć" chords and berde bass.
+- The whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
+  prim melody with tremolo, bas-prim a third below, kontra off-beat "ćuć" chords and berde bass.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.
-- Songs are data in [`src/music/songs.ts`](src/music/songs.ts). Write the bisernica melody and the chords,
+- Songs are data in [`src/music/songs.ts`](src/music/songs.ts). Write the prim melody and the chords,
   and [`src/music/arrange.ts`](src/music/arrange.ts) derives the other parts.
 
 **Keyboard** (key positions, so it works on any layout)
@@ -58,17 +58,19 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#bugarija`
 - `Shift`+`1`…`9` picks and plays a chord. `←` and `→` switch chords. `Esc` clears the chord.
 - With **Tremolo** on, a held key, fret or `Space` keeps repeating.
 
-## Tunings (E system)
+## Tunings (srijemski E-štim)
 
-All tunings live in [`src/music/instruments.ts`](src/music/instruments.ts). Sources and players
-differ, so treat these as a starting point and correct them there:
+Slavonian tamburica bands play the Srijem E tuning, not the orchestral Farkaš system.
+All tunings live in [`src/music/instruments.ts`](src/music/instruments.ts):
 
-| Instrument | Courses, low → high              | Role            |
-| ---------- | -------------------------------- | --------------- |
-| Bisernica  | cis¹ – fis¹ – h¹ – e² (e² double) | lead melody     |
-| Brač       | cis – fis – h – e¹ (e¹ double)    | melody, 2nd voice |
-| Bugarija   | d – a – d¹ – fis¹ (fis¹ double)   | rhythm, chords  |
-| Berde      | E₁ – A₁ – D – G                   | bass            |
+| Instrument             | Strings, high → low       | Role               |
+| ---------------------- | ------------------------- | ------------------ |
+| Prim (bisernica)       | e² e² h¹ fis¹ cis¹ (5)    | lead melody        |
+| Bas-prim (brač)        | e¹ e¹ h fis cis (5)       | melody, 2nd voice  |
+| Kontra (bugarija)      | e¹ e¹ h gis e (5), E major | rhythm, chords     |
+| Berde                  | G D A₁ E₁ (4)             | bass               |
+
+The chord palette is built for the keys these bands play in with this tuning: E, A, H, H7, E7, Fism, Cism and more.
 
 Chord shapes are not hard-coded. [`src/music/chords.ts`](src/music/chords.ts) searches each
 instrument's tuning for the best playable shape: every string sounds a chord tone, the shape includes
@@ -77,11 +79,19 @@ Berde plays the root note only. After you change a tuning, the shapes follow aut
 
 ## How the sound works
 
-[`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplus-Strong plucked string:
+There are no recordings. The model follows the physics of a plucked steel string, with values from the
+literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplus-Strong string:
 
-- **Excitation:** a noise burst, low-passed by plectrum hardness and comb-filtered by the plucking point.
-- **Loop:** a delay loop with a one-zero low-pass (steel-string damping) and an allpass filter for the
-  fractional period. The tests check that every note on every instrument is within 3 cents.
+- **Excitation:** a noise burst, low-passed by plectrum hardness and comb-filtered by the plucking point
+  (close to the bridge, about 1/9 of the string).
+- **Losses:** a one-zero low-pass in the delay loop, which damps a steel string.
+- **Stiffness:** allpass dispersion filters make the upper partials run sharp, as on a real stiff string.
+  They are fitted per note to the inharmonicity B = π³·E·d⁴ / (64·T·L²) of typical tamburica gauges and
+  scale lengths (prim e² string ≈ 4e-5). A test checks the partials against the theory.
+- **Tuning:** every filter's exact phase delay is subtracted from the period, so the fundamental of every
+  note on every instrument is within 3 cents.
+- **Two polarisations:** the string vibrates in two planes that decay at different rates. A bright
+  "prompt" sound fades fast and leaves a softer aftersound, with a slow beat between the two.
 - **Plectrum:** a short click on top of the string.
 
 [`src/audio/engine.ts`](src/audio/engine.ts) adds the rest:
@@ -89,10 +99,11 @@ Berde plays the root note only. After you change a tuning, the shapes follow aut
 - **Doubled courses:** the two strings are slightly detuned and a few ms apart, which gives the
   tamburica shimmer.
 - **Dynamics:** a velocity-dependent low-pass, so soft strums are darker.
-- **Body:** per-instrument resonances (bisernica air/wood modes at ~340/740 Hz).
+- **Body:** a convolution with each instrument's body response, built from its air and plate modes.
+  The prim's ~340/740 Hz modes are measured, and the larger bodies scale them down.
 - **Room and level:** a short room reverb and a limiter.
 
-Notes render in ~0.5 ms and are cached, and the AudioContext uses `latencyHint: 'interactive'`.
+Notes render in a few ms and are cached, and the AudioContext uses `latencyHint: 'interactive'`.
 Re-plucking a string chokes its previous note, like a real string.
 
 Tone parameters per instrument (decay, brightness, pick position, body) are in `instruments.ts` → `tone`.
@@ -118,8 +129,8 @@ src/
 
 ## Ideas for next versions
 
-- Recorded samples per instrument, mixed with or replacing the synthesis.
-- A-system tunings, plus čelo and kontra.
+- Tuning the sound against recordings of real instruments (decay, body, string beating).
+- Čelo, a second prim (kontrašica) and the Farkaš system as an option.
 - More frets and position shifting, and a capo.
 - More songs, a tempo control and a loop for practising along with the band.
 - Embedding in the portfolio (replacing the old "Tambura animation" experiment).
