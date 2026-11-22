@@ -42,7 +42,8 @@ or a sub-path of the portfolio). Link to an instrument with a hash: `/#kontra` (
 **Band (▶ Kolo)**
 
 - The whole band plays a short kolo in E major. It is an original tune in a Slavonian style:
-  prim melody with tremolo, bas-prim a third below, kontra off-beat "ćuć" chords and berde bass.
+  prim melody with tremolo, a second prim (druga prima) a third below for the two-voice sound,
+  bas-prim doubling the melody an octave lower, kontra off-beat "ćuć" chords and berde bass.
 - The neck shows the selected instrument's part as it plays.
 - **Without me / Bez mene** mutes your instrument so you can play its part along with the band.
   The dots show what to play, and strumming plays the shown shape.
@@ -111,7 +112,8 @@ literature. [`src/audio/karplus.ts`](src/audio/karplus.ts) is an extended Karplu
   (not on the kontra, whose strokes are damped).
 - **Picks:** a hard horn pick for the prim, bas-prim and kontra (the kontra's is large and thick, so it
   has more attack), and a soft suede-covered pick for the berde.
-- **Room and level:** a short room reverb and a limiter.
+- **Warmth and room:** a gentle low lift and high cut on the mix, and a warm wooden room with a short
+  pre-delay for depth. The limiter is a light safety net only, so the band isn't squashed.
 
 Notes render in a few ms and are cached, and the AudioContext uses `latencyHint: 'interactive'`.
 Re-plucking a string chokes its previous note, like a real string.

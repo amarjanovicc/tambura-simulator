@@ -5,7 +5,8 @@ import type { AudioEngine } from './engine';
 
 const LOOKAHEAD_S = 0.3;
 const TICK_MS = 50;
-const PAN: Record<InstrumentId, number> = { prim: -0.25, basprim: 0.25, kontra: 0.12, berde: 0 };
+// Lead prim left, second prim right (mirrored), bas-prim a little right of centre.
+const PAN: Record<InstrumentId, number> = { prim: -0.3, basprim: 0.15, kontra: 0.08, berde: 0 };
 
 /**
  * Plays a song with the whole band. Notes are scheduled on the audio clock a little
@@ -59,6 +60,7 @@ export class BandPlayer {
     for (const id of this.visuals) clearTimeout(id);
     this.visuals.clear();
     this.engine.stopAll('band');
+    this.engine.stopAll('band2');
     if (notify) this.onEnd();
   }
 
@@ -71,7 +73,8 @@ export class BandPlayer {
       if (at > horizon) break;
       this.next++;
       const delay = Math.max(0, at - now);
-      const audible = !this.muted.has(e.inst);
+      // "Without me" mutes the lead part of your instrument; a second player keeps playing.
+      const audible = !this.muted.has(e.inst) || e.part === 'second';
       const inst = getInstrument(e.inst);
       if (audible) {
         const n = inst.courses.length;
@@ -82,11 +85,13 @@ export class BandPlayer {
           velocity: e.velocity,
           doubled: inst.courses[e.course]?.doubled ?? false,
           delay,
-          pan: PAN[e.inst] + (e.course / (n - 1) - 0.5) * 0.15,
-          group: 'band',
+          pan: (e.part ? -PAN[e.inst] : PAN[e.inst]) + (e.course / (n - 1) - 0.5) * 0.15,
+          group: e.part ? 'band2' : 'band',
           ...(e.staccato !== undefined ? { staccato: e.staccato } : {}),
         });
       }
+      // The neck shows the lead part only.
+      if (e.part) continue;
       const id = setTimeout(() => {
         this.visuals.delete(id);
         this.onNote(e, audible);

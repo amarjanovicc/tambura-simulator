@@ -61,7 +61,7 @@ export class AudioEngine {
   private readonly bodies = new Map<InstrumentId, AudioNode>();
   private readonly cache = new Map<string, AudioBuffer>();
   private readonly voices = new Map<string, Voice>();
-  private volumeLevel = 0.8;
+  private volumeLevel = 0.7;
 
   get running(): boolean {
     return this.ctx?.state === 'running';
@@ -264,21 +264,39 @@ export class AudioEngine {
     this.ctx = ctx;
 
     this.mix = ctx.createGain();
+
+    // Warmth: a little more low body, a little less high edge, as heard a few metres
+    // away in a wooden room rather than with an ear on the soundboard.
+    const warm = ctx.createBiquadFilter();
+    warm.type = 'lowshelf';
+    warm.frequency.value = 220;
+    warm.gain.value = 3;
+    const soft = ctx.createBiquadFilter();
+    soft.type = 'highshelf';
+    soft.frequency.value = 4200;
+    soft.gain.value = -5;
+    this.mix.connect(warm).connect(soft);
+
+    // Depth: a warm room behind the instrument, arriving a moment after the direct sound.
+    const preDelay = ctx.createDelay(0.1);
+    preDelay.delayTime.value = 0.018;
     const reverb = ctx.createConvolver();
-    reverb.buffer = makeRoomImpulse(ctx, 1.3);
+    reverb.buffer = makeRoomImpulse(ctx, 1.8);
     const wet = ctx.createGain();
-    wet.gain.value = 0.16;
+    wet.gain.value = 0.24;
+
+    // A gentle safety limiter only: heavy compression made the band sound too loud and flat.
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -12;
-    limiter.knee.value = 6;
-    limiter.ratio.value = 6;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.2;
+    limiter.threshold.value = -6;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 3;
+    limiter.attack.value = 0.005;
+    limiter.release.value = 0.25;
     this.volume = ctx.createGain();
     this.volume.gain.value = this.volumeLevel;
 
-    this.mix.connect(limiter);
-    this.mix.connect(reverb).connect(wet).connect(limiter);
+    soft.connect(limiter);
+    soft.connect(preDelay).connect(reverb).connect(wet).connect(limiter);
     limiter.connect(this.volume).connect(ctx.destination);
 
     // A silent buffer finishes unlocking on older iOS.
@@ -352,7 +370,7 @@ function makeRoomImpulse(ctx: BaseAudioContext, seconds: number): AudioBuffer {
     let y = 0;
     for (let i = 0; i < len; i++) {
       const t = i / len;
-      const a = 0.9 - 0.75 * t; // low-pass gets darker as the tail decays
+      const a = 0.6 - 0.5 * t; // a warm room: dark, and darker as the tail decays
       y += a * (Math.random() * 2 - 1 - y);
       data[i] = y * (1 - t) ** 3 * (i < 200 ? i / 200 : 1);
     }

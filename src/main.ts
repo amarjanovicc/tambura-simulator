@@ -31,7 +31,7 @@ function loadPrefs(): Prefs {
     showNotes: true,
     showKeys: false,
     minusOne: false,
-    volume: 0.8,
+    volume: 0.7,
   };
   try {
     const saved = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Partial<Prefs>;

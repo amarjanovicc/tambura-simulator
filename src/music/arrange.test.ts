@@ -31,6 +31,17 @@ describe('arrange', () => {
     }
   });
 
+  it('has a second prim a diatonic third below the melody', () => {
+    const lead = events.filter((e) => e.inst === 'prim' && !e.part);
+    const second = events.filter((e) => e.inst === 'prim' && e.part === 'second');
+    expect(second.length).toBeGreaterThan(0);
+    const leadPitches = new Set(lead.map((e) => e.midi));
+    for (const e of second) {
+      const interval = [3, 4].map((d) => e.midi + d).some((m) => leadPitches.has(m));
+      expect(interval, `MIDI ${e.midi}`).toBe(true);
+    }
+  });
+
   it('is sorted in time', () => {
     for (let i = 1; i < events.length; i++) expect(events[i]!.time).toBeGreaterThanOrEqual(events[i - 1]!.time);
   });
